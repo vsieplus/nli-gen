@@ -1,9 +1,11 @@
+# NLI-Gen
+
 This project explores the use of deep learning methods to assist Natural
 Language Inference (NLI) with entailment and contradiction generation.
 
 There are two tasks to be specified.
 
-(1) Entailment and Contradiction Generation
+## (1) Entailment and Contradiction Generation
 
 Given an input sentence A, we wish to generate output sentences b1, b2, ...,
 and c1, c2, ... which A entails and contradicts. In addition, we are also
@@ -12,7 +14,7 @@ output sentences d1, d2, … which entail A. Note that the analogous task for
 contradiction is identical to the original, since contradiction between two 
 sentences is symmetric.
 
-(2) Natural Language Inference
+## (2) Natural Language Inference
 
 Given a hypothesis sentence H, we aim to determine whether A entails,
 contradicts, or is neutral to H. In theory, this classification process will be
