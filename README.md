@@ -21,7 +21,7 @@ contradicts, or is neutral to H. In theory, this classification process will be
 aided by the results of the generation processes described above. In particular,
 if the generation works well we can aid the direct inference of A to H by the
 inferences of B<sub>i</sub>, C<sub>j</sub>, D<sub>k</sub> to H, and potentially vice versa. For instance, if we
-assume that A entails B1 and B1 entails H, we expect A to entail H. The 
+assume that A entails B<sub>1</sub> and B<sub>1</sub> entails H, we expect A to entail H. The 
 specifics of these interactions are specified further within the particular
 implementation, and depends on the nature of each inference, and how well the
 generation seems to be doing.
