@@ -16,7 +16,7 @@ sentences is symmetric.
 
 ## (2) Natural Language Inference
 
-Given a hypothesis sentence H, we aim to determine whether A entails,
+Given an input sentence A and hypothesis sentence H, we aim to determine whether A entails,
 contradicts, or is neutral to H. In theory, this classification process will be
 aided by the results of the generation processes described above. In particular,
 if the generation works well we can aid the direct inference of A to H by the
