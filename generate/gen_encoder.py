@@ -3,6 +3,8 @@
 import torch
 import torch.nn as nn
 
+import seq_helper
+
 # Define class for the encoder, using the LSTM recurrent unit
 class Encoder(nn.Module):
 
@@ -20,7 +22,6 @@ class Encoder(nn.Module):
         if embeddings is None:
             # If no embeddings provided, use random ones
             self.embedding = nn.Embedding(vocab_size, embed_size)
-            embed_size = hidden_size
         else:
             _, embed_size = embeddings.size()
             self.embedding = nn.Embedding(vocab_size, embed_size)
@@ -33,7 +34,7 @@ class Encoder(nn.Module):
 
     # Forward propogation through the Encoder
     #   input - the input batch (packed), with shape: (batch_size, seq_len),
-    #           containing corresponding indices for words in the sentences 
+    #           containing corresponding indices of words of the sentences
     #   h0 - initial hidden state, shape: (1, batch, hidden_size)
     #   c0 - initial cell state, shape: (same as h0)
     #   batch_size - size of batch fed into network
