@@ -1,6 +1,10 @@
 # Script for preparing data for generation model
 
 import torch
+
+from torchtext import data
+from torchtext import datasets
+
 import numpy as np
 import unicodedata
 
@@ -27,4 +31,11 @@ def normalizeString(s):
     s = re.sub(r"[^a-zA-Z.!?]+", r" ", s)
     return s
 
+# Load SNLI dataset from torchtext
+inputs = data.Field(lower = True, tokenize = 'spacy')
+relations = data.Field(sequential = False)
 
+snli_train, snli_dev, snli_test = datasets.SNLI.splits(inputs, relations)
+
+inputs.build_vocab(snli_train, snli_dev, snli_test)
+relations.build_vocab(snli_train)
