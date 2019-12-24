@@ -3,6 +3,7 @@
 
 \usepackage{amssymb}
 \usepackage{amsmath}
+\usepackage{amsthm}
 \usepackage[document]{ragged2e}
 \usepackage{comment}
 \usepackage{upgreek}
@@ -25,13 +26,21 @@
 \newcommand{\xmark}{\ding{55}}%5
 %\pagenumbering{gobble}
 
+\theoremstyle{definition}
+\newtheorem{definition}{Definition}[section]
+\newtheorem{example}{Example}[section]
+
+\newtheorem{theorem}{Theorem}[section]
+\newtheorem{corollary}{Corollary}[theorem]
+\newtheorem{lemma}[theorem]{Lemma}
+
 \def\HS{\space\space}
 
 \setlength{\LTleft}{0pt}
 
-\title{Generating Entailments and Contradictions with Natural Language}
+\title{Generating Natural Language Entailments and Contradictions to assist Natural Language Inference}
 \date{}
-\author{Ryan Sie \\ LIGN 167}
+\author{Ryan Sie}
 
 
 \begin{document}
@@ -40,5 +49,42 @@
 \section{Introduction}
 
 \section{Previous Work}
+
+\section{Linguistic Motivation}
+
+\paragraph{}
+
+In the linguistic subfield of semantics, the relationships of \textbf{entailments} and \textbf{contradictions} between sentences in natural language are well studied phenomena. The models discussed in this paper attempt to make use of various parts of semantic theory in their design. This section will provide a brief introduction and overview of the core ideas that motivate the models' architectures.
+
+\paragraph{}
+
+A common way to formalize the representation of natural language sentences are as sets of possible worlds in which they are true, in the mathematical sense of \textit{set}. A possible world can simply be thought of any particular arrangement of circumstances in the real world that can be imagined. For our purposes it will suffice to describe a possible world $w$ in words. For instance, in one world you might own a goldfish, while in another, you might not. Then a sentence $S = \{w_1, ..., w_k, ...\}$ is a simple set containing possible worlds $w_i$ in which the sentence is true. Note that this set may be infinite (in fact, many are), and even empty. To help illustrate this formulation, below are some example sentences with descriptions of some possible worlds they contain.
+
+\begin{exe}
+\ex I ate breakfast today
+	\begin{xlist} 
+		\ex I ate a bagel for breakfast today	
+		\ex I ate a bowl of cereal for breakfast today
+	\end{xlist}
+\ex The sky is not blue
+	\begin{xlist} 
+		\ex The sky is purple
+		\ex The sky is white (imagine a different world than ours)
+	\end{xlist}
+\ex This sentence is false = 
+	\begin{xlist}
+		\ex asdf
+	\end{xlist}
+\end{exe}
+
+\begin{definition}
+Let $A$, $B$ be two sentences. We say that \textit{A} \textbf{entails} $B$ if when $A$ is true, it follows that $B$ is true. \end{definition}
+
+
+
+
+\section{Model}
+
+\section{Conclusion}
 
 \end{document}
