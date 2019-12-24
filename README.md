@@ -28,4 +28,4 @@ generation seems to be doing.
 
 As such, there are two separate models as part of this project - one for
 generation, and one for inference - both are built using the Pytorch library.
-For further implementation details, refer to `report/report.pdf`.
+For further implementation details, refer to `writeup/writeup.pdf`.
