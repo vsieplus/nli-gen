@@ -1,0 +1,8 @@
+This is BibTeX, Version 0.99dThe top-level auxiliary file: writeup.aux
+The style file: unsrtnat.bst
+Database file #1: references.bib
+Name 3 in "Bowman, Samuel R. and Angeli, Gabor and Potts, Christopher, and Manning, Christopher D." has a comma at the end for entry snli-stanford
+while executing---line 1315 of file unsrtnat.bst
+Name 3 in "Bowman, Samuel R. and Angeli, Gabor and Potts, Christopher, and Manning, Christopher D." has a comma at the end for entry snli-stanford
+while executing---line 1315 of file unsrtnat.bst
+(There were 2 error messages)
