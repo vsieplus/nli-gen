@@ -1,7 +1,7 @@
 # Script for training the generation model, and providing user functionality
 # to interact with it afterwards
 
-import preprocessing
+import preprocessing as pp
 import gen_encoder
 import gen_decoder
 
@@ -25,16 +25,8 @@ def timeSince(since, percent):
 
 torch.manual_seed(321)
 
-# Hyperparams
-NUM_EPOCHS = 1
-HIDDEN_SIZE = 256
-LEARNING_RATE = 0.005
-BATCH_SIZE = 16
-
 # Negative likelihood loss, with SGD
 loss_F = nn.NLLLoss()
-
-optimizer = 
 
 # Function to train the seq2seq model, given a minibatch in the seq2seq model:
 #   (1) Run input batch through encoder, producing final hidden + cell state
@@ -125,8 +117,8 @@ def train_batch(batch_input_tensor, batch_target_tensor, encoder, decoder,
     return loss.item()/target_length
 
 
-# Train for the specified number of epochs, with the given train set
-def trainIterations(encoder, decoder, training_pairs, n_epochs, print_every = 1000):
+# Train for the specified number of epochs
+def trainIterations(encoder, decoder, n_epochs, print_every = 1000):
     start = time.time()
     print_loss_total = 0
 
@@ -134,9 +126,8 @@ def trainIterations(encoder, decoder, training_pairs, n_epochs, print_every = 10
     decoder_optimizer = optim.SGD(decoder.parameters(), lr = learning_rate, weight_decay = 0.01)
     
     # Process the training set in batches, n_iters times
-    for epoch in range(NUM_EPOCHS):
+    for epoch in range(pp.NUM_EPOCHS):
         print_loss_total = 0
-        random.shuffle(training_pairs)
 
         print("Epoch: ", epoch)
         for batch_num in range(math.ceil(len(training_pairs)/batch_size) - 1):
@@ -160,15 +151,13 @@ def trainIterations(encoder, decoder, training_pairs, n_epochs, print_every = 10
 
 
 # Create encoder/decoder
-encoder1 = gen_encoder.Encoder(preprocessing.inputs.vocab.max_size, HIDDEN_SIZE,
-    embeddings = preprocessing.GLOVE_VECS_200D)
-decoder1 = gen_decoder.Decoder(preprocessing.inputs.vocab.max_size, HIDDEN_SIZE, 
-    embeddings = preprocessing.GLOVE_VECS_200D)
-
-print(encoder1.embedding("the"))
+encoder1 = gen_encoder.Encoder(pp.iputs.vocab.max_size, pp.HIDDEN_SIZE,
+    embeddings = pp.GLOVE_VECS_200D)
+decoder1 = gen_decoder.Decoder(pp.inputs.vocab.max_size, pp.HIDDEN_SIZE, 
+    embeddings = pp.GLOVE_VECS_200D)
 
 # Train the models
-trainIterations(encoder1, decoder1, train_pairs, n_epochs = NUM_EPOCHS)
+trainIterations(encoder1, decoder1, n_epochs = pp.NUM_EPOCHS)
 
 print("-----------------Training Complete-------------------------------------\n")
 
