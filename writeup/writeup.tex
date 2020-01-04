@@ -153,6 +153,8 @@ An LSTM cell at time $t$ takes in a previous cell state $\mathbf{c}_{t-1}$ and h
 
 \[\textbf{LSTM}((\mathbf{c}_{t-1}, \mathbf{h}_{t-1}), \mathbf{x}_{t}) = (\mathbf{c}_{t}, \mathbf{h}_{t})\]
 
+\subsubsection{Encoder}
+
 The encoder RNN can then be described by the following algorithm to process an input sentence $S = w_1w_2...w_n$.
 
 \begin{gather}
@@ -162,11 +164,15 @@ The encoder RNN can then be described by the following algorithm to process an i
 	\qquad (\mathbf{c}_{i}, \mathbf{h}_{i}) = \textbf{LSTM}((\mathbf{c}_{i-1}, \mathbf{h}_{i-1}), \mathbf{x}_{i}) 
 \end{gather}
 
-The encoder RNN thus produces $n$ pairs of cell and hidden states $(\mathbf{c}_i, \mathbf{h}_i)$, which will be useful in the decoder RNN. We implement word-by-word attention in the decoder with an attention MLP, in order to capture more intricate relationships between particular lexical items. This MLP can be described as a function $\text{MLP}_{attn} : \mathbb{R}^{d_{enc} + d_{dec}} \to \mathbb{R}$, where $d_{enc}, d_{dec}$ are the hidden state dimensions in the encoder and decoder, respectively (In our case we set them to be equal). This MLP takes in the concatenation of the previous hidden state before decoder timestep $j$, and some hidden state from the encoder outputs at timestep $i$, to eventually produce a normalized attention weight $\alpha_{j_{i}}$ with a final softmax layer. 
+The encoder RNN thus produces $n$ pairs of cell and hidden states $(\mathbf{c}_1, \mathbf{h}_1), ..., (\mathbf{c}_n, \mathbf{h}_n)$, which will be useful in the decoder RNN. 
+
+\subsubsection{Decoder}
+
+We implement word-by-word attention in the decoder with an attention MLP, in order to capture more intricate relationships between particular lexical items across the input and output sentences. This MLP can be described as a function $\text{MLP}_{attn} : \mathbb{R}^{d_{enc} + d_{dec}} \to \mathbb{R}$, where $d_{enc}, d_{dec}$ are the hidden state dimensions in the encoder and decoder, respectively (In our case we set them to be equal). $\text{MLP}_{attn}$ takes in the concatenation of the previous hidden state before decoder timestep $j$, and some hidden state from the encoder outputs at timestep $i$, to eventually produce a normalized attention weight $\alpha_{j_{i}}$ with a final softmax layer. We also make use of a prediction MLP, $\text{MLP}_{pred}$ for the actual generation.
 
 \bigskip
 
- The following algorithm describes the behavior of the decoder RNN during training, assuming that $T = u_1u_2...u_m$ is the corresponding observed output sentence corresponding to $S$, and $t_j$ is the index of the nonzero entry of the corresponding one-hot vector of $u_j$.
+ The following algorithm describes the behavior of the decoder RNN during training, assuming that $T = u_1u_2...u_m$ is the observed output sentence corresponding to the input sentence $S$, and $t_j$ is the index of the nonzero entry of the one-hot vector of $u_j$.
 
 \begin{gather}
 \text{Take } \mathbf{b}_0 = \mathbf{c}_n, \mathbf{g}_0 = \mathbf{h}_n \\
@@ -182,7 +188,7 @@ The encoder RNN thus produces $n$ pairs of cell and hidden states $(\mathbf{c}_i
 \text{loss}_{total} = \sum_{j=1}^{m}\text{loss}_j
 \end{gather}
 
-We can then perform
+Steps (8) - (10) involve the computation of context vectors $\mathbf{v}_j$ for word-by-word attention, while steps (13) - (15) takes care of the generation, and computing the corresponding loss with negative log likelihood with the original sentence $T$.  We can then perform an optimization procedure like Stochastic Gradient Descent to train the model.
 
 \subsection{Inference Model}
 
