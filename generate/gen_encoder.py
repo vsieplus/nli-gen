@@ -23,9 +23,7 @@ class Encoder(nn.Module):
             # If no embeddings provided, use random ones
             self.embedding = nn.Embedding(vocab_size, embed_size)
         else:
-            _, embed_size = embeddings.size()
-            self.embedding = nn.Embedding(vocab_size, embed_size)
-            self.embedding.load_state_dict({'weight': embeddings})
+            self.embedding = nn.Embedding.from_pretrained(embeddings)
 
         # LSTM RNN, accepts:
         #   - input of shape (batch_size, seq_len) [embeddings]

@@ -44,3 +44,5 @@ inputs.build_vocab(snli_train, snli_dev, snli_test)
 relations.build_vocab(snli_train)
 
 inputs.vocab.load_vectors(GLOVE_VECS_200D)
+
+print(GLOVE_VECS_200D["the"])
