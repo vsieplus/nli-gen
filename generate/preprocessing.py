@@ -9,14 +9,12 @@ from torchtext import data, datasets
 
 import numpy as np
 import unicodedata
-
-import lang
 import re
 import random
 
 EMBED_SIZE = 200
 
-GLOVE_VECS_200D = torchtext.vocab.GloVe(name='840B', dim = EMBED_SIZE)
+GLOVE_VECS_200D = torchtext.vocab.GloVe(name='6B', dim = EMBED_SIZE)
 
 # Helper functions
 
