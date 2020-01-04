@@ -172,7 +172,7 @@ We implement word-by-word attention in the decoder with an attention MLP, in ord
 
 \bigskip
 
- The following algorithm describes the behavior of the decoder RNN during training, assuming that $T = u_1u_2...u_m$ is the observed output sentence corresponding to the input sentence $S$, and $t_j$ is the index of the nonzero entry of the one-hot vector of $u_j$.
+ The following algorithm describes the behavior of the decoder RNN during training, assuming that $T = u_1u_2...u_m$ is the observed output sentence corresponding to the input sentence $S = w_1w_2...w_n$, and $t_j$ is the index of the nonzero entry of the one-hot vector of $u_j$.
 
 \begin{gather}
 \text{Take } \mathbf{b}_0 = \mathbf{c}_n, \mathbf{g}_0 = \mathbf{h}_n \\
