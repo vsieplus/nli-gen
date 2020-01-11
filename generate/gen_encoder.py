@@ -38,12 +38,11 @@ class Encoder(nn.Module):
     #   batch_size - size of batch fed into network
     def forward(self, input_batch, h0, c0, batch_size):
         # Perform embedding element wise on packed sequence
-        input_batch = seq_helper.packed_f(self.embedding, input_batch)
+        input_batch = self.embed(input_batch)
 
         # Pass through lstm
         output, (hidden, cell) = self.lstm(input_batch, (h0, c0))
         return output, (hidden, cell)
-
 
     # Initial states for the LSTM
     def initHidden(self, batch_size):

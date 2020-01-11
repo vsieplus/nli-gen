@@ -41,8 +41,8 @@ def normalizeString(s):
     return s
 
 # Load SNLI dataset from torchtext
-inputs = data.Field(lower = True, tokenize = 'spacy')
-relations = data.Field(sequential = False)
+inputs = data.Field(lower = True, tokenize = 'spacy', batch_first = True)
+relations = data.Field(sequential = False, batch_first = True)
 
 train, dev, test = datasets.SNLI.splits(inputs, relations)
 
