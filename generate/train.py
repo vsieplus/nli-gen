@@ -25,6 +25,8 @@ def timeSince(since, percent):
     return '%s (- %s)' % (asMinutes(s), asMinutes(rs))
 ###############################################################################
 
+GENERATION_TYPES = ["entailment", "contradiction"]
+
 torch.manual_seed(321)
 
 # Negative likelihood loss, with SGD
@@ -152,13 +154,19 @@ def trainIterations(encoder, decoder, train_iter, n_epochs, print_every = 1000):
 
 
 # Create encoder/decoder
-encoder1 = gen_encoder.Encoder(pp.iputs.vocab.max_size, pp.HIDDEN_SIZE,
+entail_encoder = gen_encoder.Encoder(pp.iputs.vocab.max_size, pp.HIDDEN_SIZE,
     embeddings = pp.GLOVE_VECS_200D)
-decoder1 = gen_decoder.Decoder(pp.inputs.vocab.max_size, pp.HIDDEN_SIZE, 
+entail_decoder = gen_decoder.Decoder(pp.inputs.vocab.max_size, pp.HIDDEN_SIZE, 
     embeddings = pp.GLOVE_VECS_200D)
 
-# Train the models
-trainIterations(encoder1, decoder1, pp.train_iter, n_epochs = pp.NUM_EPOCHS)
+contradict_encoder = gen_encoder.Encoder(pp.iputs.vocab.max_size, pp.HIDDEN_SIZE,
+    embeddings = pp.GLOVE_VECS_200D)
+contradict_decoder = gen_decoder.Decoder(pp.inputs.vocab.max_size, pp.HIDDEN_SIZE, 
+    embeddings = pp.GLOVE_VECS_200D)
+
+# Train the models for entailment and contradiction
+trainIterations(entail_encoder, entail_decoder, pp.train_iter_entail, n_epochs = pp.NUM_EPOCHS)
+trainIterations(contradict_encoder, contradict_decoder, pp.train_iter_contradict, n_epochs = pp.NUM_EPOCHS)
 
 print("-----------------Training Complete-------------------------------------\n")
 
@@ -166,8 +174,10 @@ print("-----------------Training Complete-------------------------------------\n
 
 print("----------------- Evaluation -------------------------------------")
 
-encoder1.eval()
-encoder2.eval()
+entail_encoder.eval()
+entail_decoder.eval()
+contradict_encoder.eval()
+contradict_decoder.eval()
 
 # Function to perform evaluation/write out results of model for a given batch
 def test_batch(batch, encoder, decoder, df):
@@ -221,9 +231,15 @@ def test_batch(batch, encoder, decoder, df):
 
     rows_list.extend(result_dicts)
 
-rows_list = []
-for batch_num, batch in enumerate(test_iter):
-    test_batch(batch, rows_list)
+rows_list_entail = []
+for batch_num, batch in enumerate(pp.test_iter_entail):
+    test_batch(batch, rows_list_entail)
 
-df = pd.DataFrame(rows_list, columns = ("premise", "hypothesis"))
-df.to_csv("model_test_outputs.tsv", sep = "\t")
+rows_list_contradict = []
+for batch_num, batch in enumerate(pp.test_iter_contradict):
+    test_batch(batch, rows_list_contradict)
+
+df_entail = pd.DataFrame(rows_list_entail, columns = ("premise", "hypothesis"))
+df_contradict = pd.DataFrame(rows_list_contradict, columns = ("premise", "hypothesis"))
+df_entail.to_csv("model_test_outputs_entailments.tsv", sep = "\t")
+df_contradict.to_csv("model_test_outputs_contradictions.tsv", sep = "\t")

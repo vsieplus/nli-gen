@@ -58,7 +58,7 @@ This paper explores the use of deep learning methods for two natural language pr
 
 \bigskip
 
-The first task is the generation of entailments and contradictions. Given an input sentence $A$, we wish to produce a sentence $B$ which $A$ \textbf{entails}, a sentence $C$ which \textbf{entails} $A$, and a sentence $D$ which $A$ \textbf{contradicts}. Informally speaking, sentence $a$ \textbf{entails} sentence $b$ if when $a$ is true, it follows that $b$ is true. Conversely, sentence $a$ \textbf{contradicts} sentence $b$ if when $a$ is true, it follows that $b$ is false. If neither of these relationships hold, we say that $a$ and $b$ are \textbf{neutral}. A more formal representation of these ideas is discussed in section \textbf{4}. 
+The first task is the generation of entailments and contradictions. Given an input sentence $A$, we wish to produce a sentence $B$ which $A$ \textbf{entails} and a sentence $C$ which $A$ \textbf{contradicts}. Informally speaking, sentence $a$ \textbf{entails} sentence $b$ if when $a$ is true, it follows that $b$ is true. Conversely, sentence $a$ \textbf{contradicts} sentence $b$ if when $a$ is true, it follows that $b$ is false. If neither of these relationships hold, we say that $a$ and $b$ are \textbf{neutral}. A more formal representation of these ideas is discussed in section \textbf{4}. 
 
 \bigskip
 
@@ -145,7 +145,7 @@ Let $A$, $B$, and $C$ be sentences.
 
 \subsection{Generation Model}
 
-The generation task involves 3 sequence-to-sequence models with the same architecture, differing only in the subset of data used to train each one. As mentioned above, the architecture involves an encoder and decoder recurrent neural network (RNN), both of which use the LSTM \cite{lstm-schmid} recurrent unit. We use the GloVe pre-trained word embeddings as well for our embedding layer \cite{glove}.
+The generation task involves 2 sequence-to-sequence models with the same architecture, differing only in the subset of data used to train each one (pairs labeled `entailment' vs `contradiction'). As mentioned above, the architecture involves an encoder and decoder recurrent neural network (RNN), both of which use the LSTM \cite{lstm-schmid} recurrent unit. We use the GloVe pre-trained word embeddings as well for our embedding layer \cite{glove}.
 
 \bigskip
 
