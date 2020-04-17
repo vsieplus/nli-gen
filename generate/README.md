@@ -1,6 +1,6 @@
 # generate
 
-This directory contains code for the entailment and contradiction generation models. Both have the same architecture, consisting of encoder and decoder RNNs using the LSTM unit as the recurrent unit. Word-by-word attention is also implemented as well. Generation is done using greedy decoding. 
+This directory contains code for the entailment and contradiction generation models. Both have the same architecture, consisting of encoder and decoder RNNs using the LSTM unit as the recurrent unit. Word-by-word attention is also implemented as well. Generation is done using greedy decoding.
 
 ## Data
 

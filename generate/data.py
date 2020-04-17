@@ -14,7 +14,7 @@ import random
 import pickle
 
 # Hyperparams
-NUM_EPOCHS = 1
+NUM_EPOCHS = 25
 HIDDEN_SIZE = 256
 LEARNING_RATE = 0.005
 BATCH_SIZE = 16
@@ -53,3 +53,13 @@ train_iter_entail, _, test_iter_entail = data.BucketIterator.splits(
     (train_entail, dev, test_entail), batch_size = BATCH_SIZE, device = device)
 train_iter_contradict, _, test_iter_contradict = data.BucketIterator.splits(
     (train_contradict, dev, test_contradict), batch_size = BATCH_SIZE, device = device)
+
+# Dicts for data iterators
+TRAIN_ITER_DICT = {
+    "entailment": train_iter_entail,
+    "contradict": train_iter_contradict,    
+}
+TEST_ITER_DICT = {
+    "entailment": test_iter_entail,
+    "contradict": test_iter_contradict,    
+}

@@ -1,16 +1,28 @@
 # Script for training and saving the generation models
 
-import preprocessing as pp
+import data
 import gen_encoder
 import gen_decoder
 
 import argparse
+import os
+import pathlib
 import time
 import math
 
+import torch
+import torch.nn as nn
+from torch import optim
 import pandas as pd
 
+ABS_PATH = pathlib.Path(__file__).parent.absolute() 
+MODELS_PATH = os.path.join(str(ABS_PATH), 'models/')
+
 GENERATION_TYPES = ["entailment", "contradiction"]
+MODEL_FNAMES = {
+    "entailment":"entail-gen.tar",
+    "contradiction":"contra-gen.tar"    
+}
 
 # Negative likelihood loss, with SGD
 loss_F = nn.NLLLoss()
@@ -139,30 +151,43 @@ def trainIterations(encoder, decoder, train_iter, n_epochs, print_every = 1000):
 def main():
 
     parser = argparse.ArgumentParser()
-    parser.add_argument("--model_type", type=str, help="entailment or contradiction")
     parser.add_argument("--output_dir", type=str, help="output directory")
+    parser.add_argument("--model_type", type=str, help="entailment or contradiction",
+                        choices = GENERATION_TYPES)
+    parser.add_argument("--num_epochs", type=int, default=1)                        
+
+    args = parser.parse_args()
 
     torch.manual_seed(321)
 
     # Create encoder/decoder
-    entail_encoder = gen_encoder.Encoder(pp.iputs.vocab.max_size, pp.HIDDEN_SIZE,
-        embeddings = pp.GLOVE_VECS_200D)
-    entail_decoder = gen_decoder.Decoder(pp.inputs.vocab.max_size, pp.HIDDEN_SIZE, 
-        embeddings = pp.GLOVE_VECS_200D)
+    encoder = gen_encoder.Encoder(data.inputs.vocab.max_size, data.HIDDEN_SIZE,
+        embeddings = data.GLOVE_VECS_200D)
+    decoder = gen_decoder.Decoder(pp.inputs.vocab.max_size, data.HIDDEN_SIZE, 
+        embeddings = data.GLOVE_VECS_200D)
 
-    contradict_encoder = gen_encoder.Encoder(pp.iputs.vocab.max_size, pp.HIDDEN_SIZE,
-        embeddings = pp.GLOVE_VECS_200D)
-    contradict_decoder = gen_decoder.Decoder(pp.inputs.vocab.max_size, pp.HIDDEN_SIZE, 
-        embeddings = pp.GLOVE_VECS_200D)
+    print("Starting Training.")
+    encoder.train()
+    decoder.train()
 
-    # Train the models for entailment and contradiction
-    trainIterations(entail_encoder, entail_decoder, pp.train_iter_entail, n_epochs = pp.NUM_EPOCHS)
-    trainIterations(contradict_encoder, contradict_decoder, pp.train_iter_contradict, n_epochs = pp.NUM_EPOCHS)
+    # Train the models on the filtered dataset
+    trainIterations(encoder, decoder, data.TRAIN_ITER_DICT[args.model_type], 
+                    n_epochs = args.num_epochs)
 
-    print("-----------------Training Complete-------------------------------------\n")
+    print("Training Complete.")
 
     # Save models
+    if not os.path.isdir(MODELS_PATH):
+        print('creating directory %s ' % MODELS_PATH)
+        os.mkdir(MODELS_PATH)
 
+    print("Saving models...")
+    torch.save({
+            'encoder_state_dict': encoder.state_dict(),
+            'decoder_state_dict': decoder.state_dict(),            
+        }, 
+        os.path.join(ABS_PATH, args.output_dir, MODEL_FNAMES[args.model_type])
+    )
 
 if __name__ == "__main__":
     main()

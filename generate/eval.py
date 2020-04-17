@@ -1,13 +1,11 @@
 # Evaluation script for the generation model
 
-############### Evaluation/Testing on the test set ############################
+import data
+import argparse
+import gen_encoder
+import gen_decoder
 
-print("----------------- Evaluation -------------------------------------")
-
-entail_encoder.eval()
-entail_decoder.eval()
-contradict_encoder.eval()
-contradict_decoder.eval()
+import argparse
 
 # Function to perform evaluation/write out results of model for a given batch
 def test_batch(batch, encoder, decoder, df):
@@ -73,3 +71,37 @@ df_entail = pd.DataFrame(rows_list_entail, columns = ("premise", "hypothesis"))
 df_contradict = pd.DataFrame(rows_list_contradict, columns = ("premise", "hypothesis"))
 df_entail.to_csv("model_test_outputs_entailments.tsv", sep = "\t")
 df_contradict.to_csv("model_test_outputs_contradictions.tsv", sep = "\t")
+
+def main():
+    device = torch.device("cpu")
+
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--model", type=str)
+    parser.add_argument("--contexts", type=str)
+
+    args = parser.parse_args()
+
+    print("Loading model")
+    encoder = gen_encoder.Encoder(data.inputs.vocab.max_size, data.HIDDEN_SIZE,
+        embeddings = data.GLOVE_VECS_200D)
+    decoder = gen_decoder.Decoder(pp.inputs.vocab.max_size, data.HIDDEN_SIZE, 
+        embeddings = data.GLOVE_VECS_200D)
+
+    model = torch.load(PATH, map_location=device)
+    encoder.load_state_dict(model['encoder_state_dict'])
+    decoder.load_state_dict(model['decoder_state_dict'])
+
+    encoder.eval()
+    decoder.eval()
+
+    print("Starting Evaluation")
+
+    encoder.eval()
+    decoder.eval()
+
+    with open(args.contexts, "r") as f:
+        gen_contexts = f.read().splitlines() 
+
+
+if __name__ == "__main__":
+    main()
