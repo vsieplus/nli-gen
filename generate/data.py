@@ -24,22 +24,6 @@ GLOVE_VECS_200D = torchtext.vocab.GloVe(name='6B', dim = EMBED_SIZE)
 
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
-# Helper functions
-
-# Convert Unicode letter to Ascii
-def unicodeToAscii(s):
-    return ''.join(
-        c for c in unicodedata.normalize('NFD', s)
-        if unicodedata.category(c) != 'Mn'
-    )
-
-# Lowercase, trim, and remove non-letter characters in a string
-def normalizeString(s):
-    s = unicodeToAscii(s.lower().strip())
-    s = re.sub(r"([.!?])", r" \1", s)
-    s = re.sub(r"[^a-zA-Z.!?]+", r" ", s)
-    return s
-
 # Load SNLI dataset from torchtext
 inputs = data.Field(lower = True, tokenize = 'spacy', batch_first = True)
 relations = data.Field(sequential = False, batch_first = True)
