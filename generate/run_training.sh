@@ -1,8 +1,8 @@
 #!/bin/bash
 
-if [ "$1" == "entailment" ]; then
+if [[ "$1" == "entailment" ]]; then
     output_dir="models/entail-gen"
-else if [ "$1" == "contradiction" ]; then
+elif [[ "$1" == "contradiction" ]]; then
     output_dir="models/contra-gen"
 else
     echo "invalid argument(s)"

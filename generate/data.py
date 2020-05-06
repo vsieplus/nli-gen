@@ -16,7 +16,6 @@ import pickle
 # Hyperparams
 NUM_EPOCHS = 25
 HIDDEN_SIZE = 256
-LEARNING_RATE = 0.005
 BATCH_SIZE = 16
 EMBED_SIZE = 200
 
@@ -26,27 +25,30 @@ device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
 # Load SNLI dataset from torchtext
 inputs = data.Field(lower = True, tokenize = 'spacy', batch_first = True)
-relations = data.Field(sequential = False, batch_first = True)
+labels = data.Field(sequential = False, batch_first = True)
 
-train, dev, test = datasets.SNLI.splits(inputs, relations)
+train, dev, test = datasets.SNLI.splits(inputs, labels)
 
 train_entail = data.Dataset(train.examples, train.fields, 
-    filter_pred = lambda x: x.relations == "entailment")
+    filter_pred = lambda x: x.label == "entailment")
 test_entail = data.Dataset(test.examples, test.fields, 
-    filter_pred = lambda x: x.relations == "entailment")
+    filter_pred = lambda x: x.label == "entailment")
 
 train_contradict = data.Dataset(train.examples, train.fields, 
-    filter_pred = lambda x: x.relations == "contradiction")
+    filter_pred = lambda x: x.label == "contradiction")
 test_contradict = data.Dataset(test.examples, test.fields, 
-    filter_pred = lambda x: x.relations == "contradiction")
+    filter_pred = lambda x: x.label == "contradiction")
 
 inputs.build_vocab(train_entail, test_entail, train_contradict, test_contradict)
-relations.build_vocab(train_entail)
+labels.build_vocab(train_entail)
+
+print("Loading embeddings...")
 
 inputs.vocab.load_vectors(GLOVE_VECS_200D)
 
 #print(GLOVE_VECS_200D["the"])
 
+print("Setting up training and test sets")
 train_iter, dev_iter, test_iter = data.BucketIterator.splits((train, dev, test),
                                     batch_size = BATCH_SIZE, device = device)
 train_iter_entail, _, test_iter_entail = data.BucketIterator.splits(

@@ -15,6 +15,8 @@ import torch.nn as nn
 from torch import optim
 import pandas as pd
 
+LEARNING_RATE = 0.005
+
 ABS_PATH = pathlib.Path(__file__).parent.absolute() 
 MODELS_PATH = os.path.join(str(ABS_PATH), 'models/')
 
@@ -45,8 +47,10 @@ loss_F = nn.NLLLoss()
 def train_batch(batch, encoder, decoder, encoder_optimizer, decoder_optimizer):
 
     curr_batch_size = batch.batch_size
-    batch.premise = torch.tensor(batch.premise, dtype = torch.long, device = device)
-    batch.hypothesis = torch.tensor(batch.hypothesis, dtype = torch.long, device = device)
+    print(batch.premise)
+    print(batch.hypothesis)    
+    premise = torch.tensor(batch.premise, dtype = torch.long, device = device)
+    hypothesis = torch.tensor(batch.hypothesis, dtype = torch.long, device = device)
 
     encoder_hidden = encoder.initHidden(curr_batch_size)
 
@@ -56,9 +60,8 @@ def train_batch(batch, encoder, decoder, encoder_optimizer, decoder_optimizer):
     loss = 0
 
     # Feed input through encoder, store packed output + context
-    encoder_outputs, (hn, cn) = encoder(batch.premise,
-        encoder.initHidden(curr_batch_size), encoder.initCell(curr_batch_size), 
-        curr_batch_size)
+    encoder_outputs, (hn, cn) = encoder(premise, encoder.initHidden(curr_batch_size), 
+        encoder.initCell(curr_batch_size), curr_batch_size)
 
 #    # If outputs not of length MAX_SENT_LEN, pad with zeros
 #    if(encoder_outputs.size(0) != processing.MAX_SENT_LEN):
@@ -67,7 +70,7 @@ def train_batch(batch, encoder, decoder, encoder_optimizer, decoder_optimizer):
 #            curr_batch_size, hidden_size)), 0)
 
     # Decoder setup -> forward propogation
-    decoder_input = torch.tensor(pp.inputs.init_token, dtype = torch.long).view(-1,1)
+    decoder_input = torch.tensor(data.inputs.init_token, dtype = torch.long).view(-1,1)
     decoder_input = torch.tensor([decoder_input] * curr_batch_size)
 
     context = (hn, cn)
@@ -75,7 +78,7 @@ def train_batch(batch, encoder, decoder, encoder_optimizer, decoder_optimizer):
     decoder_cell = context[1].squeeze()
 
     # Feed actual target token as input to next timestep
-    for timestep in range(min(processing.MAX_SENT_LEN, target_length)):
+    for timestep in range(hypothesis.size(1)):
         decoder_output, decoder_hidden, decoder_cell, decoder_attn = decoder(
             decoder_input, decoder_hidden, decoder_cell, 
             encoder_outputs[continue_idxs, :])
@@ -84,18 +87,18 @@ def train_batch(batch, encoder, decoder, encoder_optimizer, decoder_optimizer):
         continue_idxs = []
 
         # Compute loss for data in batch that have not passed <EOS> yet,
-        # and only continue computations 
+        # and only continue computations for these if current target is not <EOS>
         for b in range(curr_batch_size):
-            curr_target_idx = batch.hypothesis[b, timestep][0]
+            curr_target_idx = hypothesis[b, timestep][0]
 
             # If current target index > 0, compute loss, and update states
             if curr_target_idx > 0:
                 loss_idxs.append(b)
 
-                if curr_target_idx != pp.inputs.eos_token:
+                if curr_target_idx != data.inputs.eos_token:
                     continue_idxs.append(b)
 
-        loss += loss_F(decoder_output[loss_idxs,:], batch.hypothesis[loss_idxs, timestep].squeeze(1))
+        loss += loss_F(decoder_output[loss_idxs,:], hypothesis[loss_idxs, timestep].squeeze(1))
 
         decoder_input = batch.hypothesis[continue_idxs, timestep].squeeze(1)
             
@@ -119,14 +122,16 @@ def trainIterations(encoder, decoder, train_iter, n_epochs, print_every = 1000):
     encoder.train()
     decoder.train()
 
-    encoder_optimizer = optim.SGD(encoder.parameters(), lr = learning_rate, weight_decay = 0.01)
-    decoder_optimizer = optim.SGD(decoder.parameters(), lr = learning_rate, weight_decay = 0.01)
+    encoder_optimizer = optim.SGD(encoder.parameters(), lr = LEARNING_RATE, weight_decay = 0.01)
+    decoder_optimizer = optim.SGD(decoder.parameters(), lr = LEARNING_RATE, weight_decay = 0.01)
 
     # Process the training set in batches, for NUM_EPOCHS epochs
-    for epoch in range(pp.NUM_EPOCHS):
+    for epoch in range(n_epochs):
         print_loss_total = 0
 
         print("Epoch: ", epoch)
+
+        train_iter.init_epoch()
 
         # Process each batch and perform optimization accordingly
         for batch_num, batch in enumerate(train_iter):
@@ -161,10 +166,10 @@ def main():
     torch.manual_seed(321)
 
     # Create encoder/decoder
-    encoder = gen_encoder.Encoder(data.inputs.vocab.max_size, data.HIDDEN_SIZE,
-        embeddings = data.GLOVE_VECS_200D)
-    decoder = gen_decoder.Decoder(pp.inputs.vocab.max_size, data.HIDDEN_SIZE, 
-        embeddings = data.GLOVE_VECS_200D)
+    encoder = gen_encoder.Encoder(len(data.inputs.vocab), data.HIDDEN_SIZE,
+        embeddings = data.inputs.vocab.vectors, embed_size = data.EMBED_SIZE)
+    decoder = gen_decoder.Decoder(len(data.inputs.vocab), data.HIDDEN_SIZE, 
+        embeddings = data.inputs.vocab.vectors, embed_size = data.EMBED_SIZE)
 
     print("Starting Training.")
     encoder.train()

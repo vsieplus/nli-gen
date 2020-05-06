@@ -12,18 +12,15 @@ class Encoder(nn.Module):
     #   vocab_size - size of vocabulary
     #   hidden_size - dimension of hidden states
     #   embed_size - dimension of embeddings
-    #   embeddings - (optional pretrained embeddings)
+    #   embeddings - (pretrained embeddings)
     def __init__(self, vocab_size, hidden_size, embed_size, embeddings = None):
-        super(Decoder, self).__init__()
+        super(Encoder, self).__init__()
 
         self.hidden_size = hidden_size
         
         # Embeddings for our input tokens at each timestep
-        if embeddings is None:
-            # If no embeddings provided, use random ones
-            self.embedding = nn.Embedding(vocab_size, embed_size)
-        else:
-            self.embedding = nn.Embedding.from_pretrained(embeddings)
+        self.embedding = nn.Embedding(vocab_size, embed_size)
+        self.embedding.weight.data.copy_(embeddings)
 
         # LSTM RNN, accepts:
         #   - input of shape (batch_size, seq_len) [embeddings]
