@@ -12,7 +12,6 @@ import math
 
 import torch
 import torch.nn as nn
-from torch.nn.utils.rnn import pack_padded_sequence, pad_packed_sequence
 from torch import optim
 import pandas as pd
 
@@ -61,13 +60,13 @@ def train_batch(batch, encoder, decoder, encoder_optimizer, decoder_optimizer, d
 
     encoder_hidden = encoder.initHidden(batch_size, device)
     encoder_cell = encoder.initCell(batch_size, device)
-    encoder_outputs = torch.zeros(premises.size(1), encoder.hidden_size, device=device)
+    encoder_outputs = torch.zeros(premises.size(0), premises.size(1), encoder.hidden_size, device=device)
 
     # Feed input through encoder, track encoder outputs for attention
     for i in range(premises.size(1)):
         # Only pass examples not yet finished processing
         not_padded = [j for j in range(premises.size(0)) if premises[j,i] != PAD_ID]
-        encoder_input = premises[not_padded, i]
+        encoder_input = premises[not_padded, i:i+1]
 
         curr_hidden = encoder_hidden[:,not_padded]
         curr_cell = encoder_cell[:,not_padded]
@@ -79,7 +78,7 @@ def train_batch(batch, encoder, decoder, encoder_optimizer, decoder_optimizer, d
         encoder_hidden[:, not_padded] = next_hidden
         encoder_cell[:, not_padded] = next_cell
 
-        encoder_outputs[i] = encoder_out[:, 0] 
+        encoder_outputs[not_padded,i] = encoder_out[:, 0] 
 
     # Decoder setup -> forward propogation
     decoder_input = torch.tensor([[data.INIT_TOKEN]], device=device)
