@@ -19,12 +19,14 @@ HIDDEN_SIZE = 256
 BATCH_SIZE = 16
 EMBED_SIZE = 200
 
+INIT_TOKEN = "<sos>"
 GLOVE_VECS_200D = torchtext.vocab.GloVe(name='6B', dim = EMBED_SIZE)
 
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
 # Load SNLI dataset from torchtext
-inputs = data.Field(lower = True, tokenize = 'spacy', batch_first = True)
+inputs = data.Field(lower = True, tokenize = 'spacy', batch_first = True, 
+                    init_token = INIT_TOKEN)
 labels = data.Field(sequential = False, batch_first = True)
 
 train, dev, test = datasets.SNLI.splits(inputs, labels)

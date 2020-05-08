@@ -12,10 +12,12 @@ import math
 
 import torch
 import torch.nn as nn
+from torch.nn.utils.rnn import pack_padded_sequence, pad_packed_sequence
 from torch import optim
 import pandas as pd
 
 LEARNING_RATE = 0.005
+PAD_ID = 1
 
 ABS_PATH = pathlib.Path(__file__).parent.absolute() 
 MODELS_PATH = os.path.join(str(ABS_PATH), 'models/')
@@ -27,7 +29,7 @@ MODEL_FNAMES = {
 }
 
 # Negative likelihood loss, with SGD
-loss_F = nn.NLLLoss()
+criterion = nn.NLLLoss()
 
 # Function to train the seq2seq model, given a minibatch in the seq2seq model:
 #   (1) Run input batch through encoder, producing final hidden + cell state
@@ -44,63 +46,66 @@ loss_F = nn.NLLLoss()
 # Parameters:
 #   batch - the batch from torchtext.data
 #   encoder/decoder (optimizer) - the encoder/decoder (optimizer), respectively
-def train_batch(batch, encoder, decoder, encoder_optimizer, decoder_optimizer):
+def train_batch(batch, encoder, decoder, encoder_optimizer, decoder_optimizer, device):
 
-    curr_batch_size = batch.batch_size
-    print(batch.premise)
-    print(batch.hypothesis)    
-    premise = torch.tensor(batch.premise, dtype = torch.long, device = device)
-    hypothesis = torch.tensor(batch.hypothesis, dtype = torch.long, device = device)
-
-    encoder_hidden = encoder.initHidden(curr_batch_size)
+    batch_size = batch.batch_size
+#    print(batch.premise)
+#    print(batch.hypothesis)  
+    premises = batch.premise
+    hypotheses = batch.hypothesis
 
     encoder_optimizer.zero_grad()
     decoder_optimizer.zero_grad()
             
     loss = 0
 
-    # Feed input through encoder, store packed output + context
-    encoder_outputs, (hn, cn) = encoder(premise, encoder.initHidden(curr_batch_size), 
-        encoder.initCell(curr_batch_size), curr_batch_size)
+    encoder_hidden = encoder.initHidden(batch_size, device)
+    encoder_cell = encoder.initCell(batch_size, device)
+    encoder_outputs = torch.zeros(premises.size(1), encoder.hidden_size, device=device)
 
-#    # If outputs not of length MAX_SENT_LEN, pad with zeros
-#    if(encoder_outputs.size(0) != processing.MAX_SENT_LEN):
-#        encoder_outputs = torch.cat((encoder_outputs, torch.zeros(
-#            processing.MAX_SENT_LEN - encoder_outputs.size(0), 
-#            curr_batch_size, hidden_size)), 0)
+    # Feed input through encoder, track encoder outputs for attention
+    for i in range(premises.size(1)):
+        # Only pass examples not yet finished processing
+        not_padded = [j for j in range(premises.size(0)) if premises[j,i] != PAD_ID]
+        encoder_input = premises[not_padded, i]
+
+        curr_hidden = encoder_hidden[:,not_padded]
+        curr_cell = encoder_cell[:,not_padded]
+
+        encoder_out, (next_hidden, next_cell) = encoder(encoder_input,
+            curr_hidden, curr_cell)
+
+        # Update overall hidden/cell
+        encoder_hidden[:, not_padded] = next_hidden
+        encoder_cell[:, not_padded] = next_cell
+
+        encoder_outputs[i] = encoder_out[:, 0] 
 
     # Decoder setup -> forward propogation
-    decoder_input = torch.tensor(data.inputs.init_token, dtype = torch.long).view(-1,1)
-    decoder_input = torch.tensor([decoder_input] * curr_batch_size)
+    decoder_input = torch.tensor([[data.INIT_TOKEN]], device=device)
 
-    context = (hn, cn)
+    context = (encoder_hidden, encoder_cell)
     decoder_hidden = context[0].squeeze()
     decoder_cell = context[1].squeeze()
 
     # Feed actual target token as input to next timestep
-    for timestep in range(hypothesis.size(1)):
-        decoder_output, decoder_hidden, decoder_cell, decoder_attn = decoder(
-            decoder_input, decoder_hidden, decoder_cell, 
-            encoder_outputs[continue_idxs, :])
+    for i in range(hypotheses.size(1)):
+        # Only pass examples that are not done processing
+        not_padded = [j for j in range(hypotheses.size(0)) if hypotheses[j,i] != PAD_ID]
+        if i > 0:
+            decoder_input = hypotheses[not_padded, i]
 
-        loss_idxs = []
-        continue_idxs = []
+        curr_hidden = decoder_hidden[:,not_padded]
+        curr_cell = decoder_cell[:,not_padded]
 
-        # Compute loss for data in batch that have not passed <EOS> yet,
-        # and only continue computations for these if current target is not <EOS>
-        for b in range(curr_batch_size):
-            curr_target_idx = hypothesis[b, timestep][0]
+        decoder_output, next_hidden, next_cell, decoder_attn = decoder(
+            decoder_input, curr_hidden, curr_cell, encoder_outputs, not_padded)
 
-            # If current target index > 0, compute loss, and update states
-            if curr_target_idx > 0:
-                loss_idxs.append(b)
+        decoder_hidden[:,not_padded] = next_hidden
+        decoder_cell[:,not_padded] = next_cell
 
-                if curr_target_idx != data.inputs.eos_token:
-                    continue_idxs.append(b)
-
-        loss += loss_F(decoder_output[loss_idxs,:], hypothesis[loss_idxs, timestep].squeeze(1))
-
-        decoder_input = batch.hypothesis[continue_idxs, timestep].squeeze(1)
+        # Compute loss
+        loss += criterion(decoder_output, hypotheses[not_padded,i])
             
     # Backpropogation + Gradient descent
     loss.backward()
@@ -113,7 +118,7 @@ def train_batch(batch, encoder, decoder, encoder_optimizer, decoder_optimizer):
 
 
 # Train for the specified number of epochs
-def trainIterations(encoder, decoder, train_iter, n_epochs, print_every = 1000):
+def trainIterations(encoder, decoder, train_iter, n_epochs, device, print_every = 1000):
     start = time.time()
     print_loss_total = 0
 
@@ -137,14 +142,14 @@ def trainIterations(encoder, decoder, train_iter, n_epochs, print_every = 1000):
         for batch_num, batch in enumerate(train_iter):
             # Train and retrieve total loss for the batch
             loss = train_batch(batch, encoder, decoder, encoder_optimizer,
-                decoder_optimizer)
+                decoder_optimizer, device)
 
             print_loss_total += loss        
             
             if((batch_num + 1) * train_iter.size % print_every == 0):
                 print_loss_avg = print_loss_total / print_every
                 print_loss_total = 0
-                print('%s (%d %.2f%%) [Avg. loss]: %.4f' % (timeSince(start, 
+                print('%s (%d %.2f%%) [Total batch loss]: %.4f' % (timeSince(start, 
                         ((batch_num + 1) * train_iter.batch_size / len(training_pairs))), 
                          (batch_num + 1) * train_iter.batch_size,
                          (batch_num + 1) * train_iter.batch_size / len(training_pairs) * 100,
@@ -175,9 +180,13 @@ def main():
     encoder.train()
     decoder.train()
 
+    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+    encoder.to(device) 
+    decoder.to(device)
+
     # Train the models on the filtered dataset
     trainIterations(encoder, decoder, data.TRAIN_ITER_DICT[args.model_type], 
-                    n_epochs = args.num_epochs)
+                    args.num_epochs, device)
 
     print("Training Complete.")
 
