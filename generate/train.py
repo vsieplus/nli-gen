@@ -17,6 +17,7 @@ import pandas as pd
 
 LEARNING_RATE = 0.005
 PAD_ID = 1
+INIT_TOKEN_ID = data.inputs.vocab.stoi[data.INIT_TOKEN]
 
 ABS_PATH = pathlib.Path(__file__).parent.absolute() 
 MODELS_PATH = os.path.join(str(ABS_PATH), 'models/')
@@ -81,11 +82,11 @@ def train_batch(batch, encoder, decoder, encoder_optimizer, decoder_optimizer, d
         encoder_outputs[not_padded,i] = encoder_out[:, 0] 
 
     # Decoder setup -> forward propogation
-    decoder_input = torch.tensor([[data.INIT_TOKEN]], device=device)
+    decoder_input = torch.tensor([INIT_TOKEN_ID], device=device)
+    decoder_input = decoder_input.repeat(batch_size)
 
-    context = (encoder_hidden, encoder_cell)
-    decoder_hidden = context[0].squeeze()
-    decoder_cell = context[1].squeeze()
+    decoder_hidden = encoder_hidden
+    decoder_cell = encoder_cell
 
     # Feed actual target token as input to next timestep
     for i in range(hypotheses.size(1)):

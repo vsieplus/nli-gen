@@ -7,6 +7,8 @@ import gen_decoder
 
 import argparse
 
+
+
 # Function to perform evaluation/write out results of model for a given batch
 def test_batch(batch, encoder, decoder, df):
     curr_batch_size = batch.batch_size
