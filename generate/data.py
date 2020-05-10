@@ -16,7 +16,7 @@ import pickle
 # Hyperparams
 NUM_EPOCHS = 25
 HIDDEN_SIZE = 256
-BATCH_SIZE = 16
+BATCH_SIZE = 64
 EMBED_SIZE = 200
 
 INIT_TOKEN = "<sos>"

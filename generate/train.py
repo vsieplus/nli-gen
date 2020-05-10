@@ -81,8 +81,10 @@ def train_batch(batch, encoder, decoder, encoder_optimizer, decoder_optimizer, d
 #        curr_hidden = encoder_hidden[:,not_padded]
 #        curr_cell = encoder_cell[:,not_padded]
 
-        curr_hidden = torch.where(not_padded_bool, encoder_hidden[0], torch.tensor(0.)).unsqueeze(0)
-        curr_cell = torch.where(not_padded_bool, encoder_cell[0], torch.tensor(0.)).unsqueeze(0)
+        curr_hidden = torch.where(not_padded_bool, encoder_hidden[0], 
+            torch.tensor(0., device=device)).unsqueeze(0)
+        curr_cell = torch.where(not_padded_bool, encoder_cell[0],
+            torch.tensor(0., device=device)).unsqueeze(0)
 
         encoder_out, (next_hidden, next_cell) = encoder(encoder_input,
             curr_hidden, curr_cell)
@@ -123,11 +125,13 @@ def train_batch(batch, encoder, decoder, encoder_optimizer, decoder_optimizer, d
         else:
             decoder_input = decoder_input.unsqueeze(1)        
 
-        curr_hidden = torch.where(not_padded_bool, decoder_hidden, torch.tensor(0.))
-        curr_cell = torch.where(not_padded_bool, decoder_cell, torch.tensor(0.))
+        curr_hidden = torch.where(not_padded_bool, decoder_hidden,
+            torch.tensor(0., device=device))
+        curr_cell = torch.where(not_padded_bool, decoder_cell,
+            torch.tensor(0., device=device))
 
         decoder_output, next_hidden, next_cell, decoder_attn = decoder(decoder_input,
-            curr_hidden, curr_cell, encoder_outputs, not_padded)
+            curr_hidden, curr_cell, encoder_outputs, not_padded, device)
 
 #        decoder_hidden[not_padded] = next_hidden
 #        decoder_cell[not_padded] = next_cell
@@ -149,7 +153,7 @@ def train_batch(batch, encoder, decoder, encoder_optimizer, decoder_optimizer, d
 
 
 # Train for the specified number of epochs
-def trainIterations(encoder, decoder, train_iter, n_epochs, device, print_every = 1000):
+def trainIterations(encoder, decoder, train_iter, n_epochs, device, print_every = 10):
     start = time.time()
     print_loss_total = 0
 
@@ -177,14 +181,12 @@ def trainIterations(encoder, decoder, train_iter, n_epochs, device, print_every 
 
             print_loss_total += loss        
             
-            if((batch_num + 1) * train_iter.batch_size % print_every == 0):
+#            if((batch_num + 1) % print_every == 0):
+             if 1 == 1:
+                print("batch num:", batch_num)
                 print_loss_avg = print_loss_total / print_every
                 print_loss_total = 0
-                print('%s (%d %.2f%%) [Total batch loss]: %.4f' % (timeSince(start, 
-                        ((batch_num + 1) * train_iter.batch_size / len(training_pairs))), 
-                         (batch_num + 1) * train_iter.batch_size,
-                         (batch_num + 1) * train_iter.batch_size / len(training_pairs) * 100,
-                         print_loss_avg))
+                print("avg loss:", print_loss_avg)
 
         print("-------------------------------------------------------------\n")
 

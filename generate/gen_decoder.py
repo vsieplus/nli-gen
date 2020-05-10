@@ -45,7 +45,7 @@ class Decoder(nn.Module):
     #   prev_c - previous cell state, shape: (same as hidden)
     #   encoder_outputs - outputs of encoder RNN, shape: (batch_size, seq_len, hidden_size)
     #   curr_idxs -> current indices being processed
-    def forward(self, input_batch, prev_h, prev_c, encoder_outputs, curr_idxs):  
+    def forward(self, input_batch, prev_h, prev_c, encoder_outputs, curr_idxs, device):  
         # Get embedding of the input
         input_embeddings = self.embedding(input_batch)
         
@@ -54,7 +54,7 @@ class Decoder(nn.Module):
         # Compute attention weights - shape: (batch, seq_len)
         # For each timestep i, compute result of feeding concatenation 
         # [prev_h, h_encoder_i] through the attention MLP;
-        attn_weights = torch.zeros(encoder_outputs.size(0), seq_len)
+        attn_weights = torch.zeros(encoder_outputs.size(0), seq_len, device=device)
 
         for index in curr_idxs:
             for j in range(seq_len):
