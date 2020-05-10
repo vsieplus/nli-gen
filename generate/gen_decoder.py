@@ -45,26 +45,25 @@ class Decoder(nn.Module):
     #   prev_c - previous cell state, shape: (same as hidden)
     #   encoder_outputs - outputs of encoder RNN, shape: (batch_size, seq_len, hidden_size)
     #   curr_idxs -> current indices being processed
-    def forward(self, input_batch, prev_h, prev_c, encoder_outputs, curr_idxs):        
-        # If only 1 ex. left, unsqueeze
-        if len(curr_idxs) == 1:
-            input_batch = input_batch.unsqueeze(0)
-        
+    def forward(self, input_batch, prev_h, prev_c, encoder_outputs, curr_idxs):  
         # Get embedding of the input
         input_embeddings = self.embedding(input_batch)
         
-        batch_size = len(curr_idxs)
         seq_len = encoder_outputs.size(1)
 
         # Compute attention weights - shape: (batch, seq_len)
         # For each timestep i, compute result of feeding concatenation 
         # [prev_h, h_encoder_i] through the attention MLP;
-        attn_weights = torch.zeros(batch_size, seq_len)
+        attn_weights = torch.zeros(encoder_outputs.size(0), seq_len)
 
-        for i, index in enumerate(curr_idxs):
+        for index in curr_idxs:
             for j in range(seq_len):
-                attn_weights[i, j] = self.attn(torch.cat((prev_h[i], 
+                attn_weights[index, j] = self.attn(torch.cat((prev_h[index], 
                     encoder_outputs[index, j]), dim = -1))
+
+#       for j in range(seq_len):
+#           attn_weights = torch.where(seq_len == j, self.attn(torch.cat((prev_h,
+#               encoder_outputs[:,j]), dim = -1)), attn_weights)
 
         # Normalize the attention weights using a softmax layer; shape: (batch, seq_len)
         attn_weights = self.softmax(attn_weights)
@@ -73,8 +72,7 @@ class Decoder(nn.Module):
         # outputs of encoder RNN (weighted sum), using batch mat-mul
         #   (b x 1 x seq) * (b x seq x hidden) -> (b x 1 x hidden) [context
         #   vectors for each sent. in the batch]
-        batch_encoder_outputs = encoder_outputs[curr_idxs]
-        context_vecs = torch.bmm(attn_weights.unsqueeze(1), batch_encoder_outputs)
+        context_vecs = torch.bmm(attn_weights.unsqueeze(1), encoder_outputs)
 
         # Concatentate embeddings with context vectors
 
