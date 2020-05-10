@@ -61,9 +61,9 @@ train_iter_contradict, _, test_iter_contradict = data.BucketIterator.splits(
 # Dicts for data iterators
 TRAIN_ITER_DICT = {
     "entailment": train_iter_entail,
-    "contradict": train_iter_contradict,    
+    "contradiction": train_iter_contradict,    
 }
 TEST_ITER_DICT = {
     "entailment": test_iter_entail,
-    "contradict": test_iter_contradict,    
+    "contradiction": test_iter_contradict,    
 }
