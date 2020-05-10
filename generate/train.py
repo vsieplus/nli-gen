@@ -48,11 +48,11 @@ criterion = nn.NLLLoss()
 #   encoder/decoder (optimizer) - the encoder/decoder (optimizer), respectively
 def train_batch(batch, encoder, decoder, encoder_optimizer, decoder_optimizer, device):
 
-    batch_size = batch.batch_size
-#    print(batch.premise)
-#    print(batch.hypothesis)  
     premises = batch.premise
     hypotheses = batch.hypothesis
+
+    batch_size = batch.batch_size
+    prem_seq_len = premises.size(1)
 
     encoder_optimizer.zero_grad()
     decoder_optimizer.zero_grad()
@@ -61,7 +61,14 @@ def train_batch(batch, encoder, decoder, encoder_optimizer, decoder_optimizer, d
 
     encoder_hidden = encoder.initHidden(batch_size, device)
     encoder_cell = encoder.initCell(batch_size, device)
-    encoder_outputs = torch.zeros(premises.size(0), premises.size(1), encoder.hidden_size, device=device)
+    encoder_outputs = torch.zeros(premises.size(0), premises.size(1), 
+                        encoder.hidden_size, device=device)
+
+    enc_hidden_copy = encoder_hidden
+    enc_cell_copy = encoder_cell
+
+    batch_idxs = torch.arange(batch_size, dtype=torch.int64, device=device)
+    seq_idxs = torch.arange(prem_seq_len, dtype=torch.int64, device=device)
 
     # Feed input through encoder, track encoder outputs for attention
     for i in range(premises.size(1)):
@@ -76,17 +83,36 @@ def train_batch(batch, encoder, decoder, encoder_optimizer, decoder_optimizer, d
             curr_hidden, curr_cell)
 
         # Update overall hidden/cell
-        encoder_hidden[:, not_padded] = next_hidden
-        encoder_cell[:, not_padded] = next_cell
+        enc_hidden_copy[not_padded] = next_hidden
+        enc_cell_copy[not_padded] = next_cell
 
-        encoder_outputs[not_padded,i] = encoder_out[:, 0] 
+        not_padded_bool = torch.tensor([idx in not_padded for idx in batch_idxs], 
+                            device=device)
+        not_padded_bool = not_padded_bool.view(-1, 1).repeat(1,
+            data.HIDDEN_SIZE).view(batch_size, data.HIDDEN_SIZE)
+
+        encoder_hidden = torch.where(not_padded_bool, next_hidden[0], enc_hidden_copy)
+        encoder_cell = torch.where(not_padded_bool, next_cell[0], encoder_cell[0])
+
+        encoder_hidden = encoder_hidden.unsqueeze(0)
+        encoder_cell = encoder_cell.unsqueeze(0)
+
+        not_padded_and_seq_bool = torch.tensor([[b_idx in not_padded and seq_idx == i
+            for seq_idx in seq_idxs] for b_idx in batch_idxs], device=device)
+        not_padded_and_seq_bool = not_padded_and_seq_bool.unsqueeze(2).repeat(1,1,
+            data.HIDDEN_SIZE)
+        
+        print(not_padded_and_seq_bool.size())
+
+        encoder_outputs = torch.where(not_padded_and_seq_bool, 
+            encoder_out[:,0:1].repeat(1,len(seq_idxs),1), encoder_outputs)
 
     # Decoder setup -> forward propogation
     decoder_input = torch.tensor([INIT_TOKEN_ID], device=device)
     decoder_input = decoder_input.repeat(batch_size)
 
-    decoder_hidden = encoder_hidden
-    decoder_cell = encoder_cell
+    decoder_hidden = encoder_hidden[0]
+    decoder_cell = encoder_cell[0]
 
     # Feed actual target token as input to next timestep
     for i in range(hypotheses.size(1)):
@@ -94,15 +120,26 @@ def train_batch(batch, encoder, decoder, encoder_optimizer, decoder_optimizer, d
         not_padded = [j for j in range(hypotheses.size(0)) if hypotheses[j,i] != PAD_ID]
         if i > 0:
             decoder_input = hypotheses[not_padded, i]
+        else:
+            decoder_input = decoder_input.unsqueeze(1)        
 
-        curr_hidden = decoder_hidden[:,not_padded]
-        curr_cell = decoder_cell[:,not_padded]
+        curr_hidden = decoder_hidden[not_padded]
+        curr_cell = decoder_cell[not_padded]
 
         decoder_output, next_hidden, next_cell, decoder_attn = decoder(
             decoder_input, curr_hidden, curr_cell, encoder_outputs, not_padded)
 
-        decoder_hidden[:,not_padded] = next_hidden
-        decoder_cell[:,not_padded] = next_cell
+#        decoder_hidden[not_padded] = next_hidden
+#        decoder_cell[not_padded] = next_cell
+
+        not_padded_bool = torch.tensor([idx in not_padded for idx in batch_idxs], 
+                            device=device)
+
+        decoder_hidden = torch.where(not_padded_bool, next_hidden[0], decoder_hidden[0])
+        decoder_cell = torch.where(not_padded_bool, next_cell[0], decoder_cell[0])
+
+        decoder_hidden = decoder_hidden.unsqueeze(0)
+        decoder_cell = decoder_cell.unsqueeze(0)
 
         # Compute loss
         loss += criterion(decoder_output, hypotheses[not_padded,i])
