@@ -8,8 +8,11 @@ import argparse
 import pathlib
 import os
 
+import torch
 import torchtext
 
+PAD_ID = 1
+MAX_GEN_LEN = 15
 
 ABS_PATH = pathlib.Path(__file__).parent.absolute() 
 RESULTS_PATH = os.path.join(str(ABS_PATH), 'results/')
@@ -25,25 +28,31 @@ MODEL_FNAMES = {
 }
 
 # Function to perform evaluation/write out results of model for a given batch
-def test_batch(batch, encoder, decoder, rows_list):
-    curr_batch_size = batch.batch_size
+def test_batch(batch, encoder, decoder, rows_list, custom = False):
+    if custom:
+        premises = batch
+    else:
+        premises = batch.premise
+
+    curr_batch_size = premises.size(0)
+    
     result_dicts = [{} for _ in range(curr_batch_size)]
 
     for b in range(curr_batch_size):
         result_dicts[b]["premise"] = ""
         for w in range(batch.premise[b, :].size(1)):
             word_idx = batch.premise[b,w]
-            result_dicts[b]["premise"] += data.inputs.iots[word_idx] + " "
+            result_dicts[b]["premise"] += data.inputs.vocab.iots[word_idx] + " "
 
     with torch.no_grad():
         # Feed input through encoder, store packed output + context
-        encoder_hidden = encoder.initHidden(batch_size, device)
-        encoder_cell = encoder.initCell(batch_size, device)
+        encoder_hidden = encoder.initHidden(curr_batch_size, device)
+        encoder_cell = encoder.initCell(curr_batch_size, device)
         encoder_outputs = torch.zeros(premises.size(0), premises.size(1), 
                             encoder.hidden_size, device=device)
 
-        batch_idxs = torch.arange(batch_size, dtype=torch.int64, device=device)
-        seq_idxs = torch.arange(prem_seq_len, dtype=torch.int64, device=device)
+        batch_idxs = torch.arange(curr_batch_size, dtype=torch.int64, device=device)
+        seq_idxs = torch.arange(premises.size(1), dtype=torch.int64, device=device)
 
         # Feed input through encoder, track encoder outputs for attention
         for i in range(premises.size(1)):
@@ -52,7 +61,7 @@ def test_batch(batch, encoder, decoder, rows_list):
             not_padded_bool = torch.tensor([idx in not_padded for idx in batch_idxs], 
                                 device=device)
             not_padded_bool = not_padded_bool.view(-1, 1).repeat(1,
-                data.HIDDEN_SIZE).view(batch_size, data.HIDDEN_SIZE)
+                data.HIDDEN_SIZE).view(curr_batch_size, data.HIDDEN_SIZE)
 
             encoder_input = premises[:, i:i+1]
 
@@ -79,18 +88,14 @@ def test_batch(batch, encoder, decoder, rows_list):
 
         # Decoder setup -> forward propogation
         decoder_input = torch.tensor([INIT_TOKEN_ID], device=device)
-        decoder_input = decoder_input.repeat(batch_size)
+        decoder_input = decoder_input.repeat(curr_batch_size)
+        decoder_input = decoder_input.unsqueeze(1)        
 
         decoder_hidden = encoder_hidden[0]
         decoder_cell = encoder_cell[0]
 
         # Feed actual target token as input to next timestep
-        for i in range(hypotheses.size(1)):
-            if i > 0:
-                decoder_input = hypotheses[:, i]
-            else:
-                decoder_input = decoder_input.unsqueeze(1)        
-
+        for i in range(MAX_GEN_LEN):
             decoder_output, decoder_hidden, decoder_cell, decoder_attn = decoder(decoder_input,
                 curr_hidden, curr_cell, encoder_outputs, not_padded)
 
@@ -100,10 +105,11 @@ def test_batch(batch, encoder, decoder, rows_list):
             # Detokenize (to text) and write results to file
             for b in range(curr_batch_size):
                 result_dicts[b]["hypothesis"] = ""
-                word_b = data.inputs.iots[decoder_input[b]]        
+                word_b = data.inputs.vocab.iots[decoder_input[b]]        
                 result_dicts[b]["hypothesis"] += word_b + " "
 
             decoder_input = decoder_input.reshape(curr_batch_size, -1)
+            
 
     rows_list.extend(result_dicts)
     
@@ -149,12 +155,19 @@ def main():
     with open(args.contexts, "r") as f:
         gen_contexts = f.read().splitlines() 
 
-    gen_contexts_tokenized = [[data.inputs.stoi[w] for w in context] for context in gen_contexts]
+    # Pad contexts + convert > tensor
+    gen_contexts_tokenized = [[data.inputs.vocab.stoi[w] for w in context] for context in gen_contexts]
+    MAX_CONTEXT_LEN = max([len(tokens) for tokens in gen_contexts_tokenized])
+    
+    for k in range(len(gen_contexts_tokenized)):
+        while len(gen_contexts_tokenized[k]) < MAX_CONTEXT_LEN:
+            gen_contexts_tokenized[k].append(PAD_ID)        
+
+    custom_batch = torch.tensor(gen_contexts_tokenized, device=device)
 
     # Use custom contexts on models
-    custom_batch = torchtext.data.Batch(gen_contexts_tokenized)
     rows_custom = []
-    test_batch(custom_batch, encoder, decoder, rows_custom)
+    test_batch(custom_batch, encoder, decoder, rows_custom, custom = True)
     df_custom = pd.DataFrame(rows_custom, columns = ("premise", "hypothesis"))
     df_custom.to_csv(os.path.join(RESULTS_PATH,args.model,"custom.csv"), sep = "\t")
 
