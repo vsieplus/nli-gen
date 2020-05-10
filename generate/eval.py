@@ -40,8 +40,9 @@ def test_batch(batch, encoder, decoder, rows_list, custom = False):
 
     for b in range(curr_batch_size):
         result_dicts[b]["premise"] = ""
-        for w in range(batch.premise[b, :].size(1)):
-            word_idx = batch.premise[b,w]
+        for w in range(premises[b, :].size(1)):
+            premise = premises[b]
+            word_idx = premise[w]
             result_dicts[b]["premise"] += data.inputs.vocab.iots[word_idx] + " "
 
     with torch.no_grad():
