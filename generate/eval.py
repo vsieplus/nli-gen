@@ -7,10 +7,13 @@ import gen_decoder
 import argparse
 import pathlib
 import os
+import sys
 
+import pandas as pd
 import torch
 import torchtext
 
+INIT_TOKEN_ID = data.inputs.vocab.stoi[data.INIT_TOKEN]
 PAD_ID = 1
 MAX_GEN_LEN = 15
 
@@ -28,7 +31,7 @@ MODEL_FNAMES = {
 }
 
 # Function to perform evaluation/write out results of model for a given batch
-def test_batch(batch, encoder, decoder, rows_list, custom = False):
+def test_batch(batch, encoder, decoder, rows_list, device, custom = False):
     if custom:
         premises = batch
     else:
@@ -40,10 +43,10 @@ def test_batch(batch, encoder, decoder, rows_list, custom = False):
 
     for b in range(curr_batch_size):
         result_dicts[b]["premise"] = ""
-        for w in range(premises[b, :].size(1)):
+        for w in range(premises[b, :].size(0)):
             premise = premises[b]
             word_idx = premise[w]
-            result_dicts[b]["premise"] += data.inputs.vocab.iots[word_idx] + " "
+            result_dicts[b]["premise"] += data.inputs.vocab.itos[word_idx] + " "
 
     with torch.no_grad():
         # Feed input through encoder, store packed output + context
@@ -90,7 +93,6 @@ def test_batch(batch, encoder, decoder, rows_list, custom = False):
         # Decoder setup -> forward propogation
         decoder_input = torch.tensor([INIT_TOKEN_ID], device=device)
         decoder_input = decoder_input.repeat(curr_batch_size)
-        decoder_input = decoder_input.unsqueeze(1)        
 
         decoder_hidden = encoder_hidden[0]
         decoder_cell = encoder_cell[0]
@@ -98,15 +100,17 @@ def test_batch(batch, encoder, decoder, rows_list, custom = False):
         # Feed actual target token as input to next timestep
         for i in range(MAX_GEN_LEN):
             decoder_output, decoder_hidden, decoder_cell, decoder_attn = decoder(decoder_input,
-                curr_hidden, curr_cell, encoder_outputs, not_padded)
+                decoder_hidden, decoder_cell, encoder_outputs, not_padded, device)
 
             # Input to next timestep are argmax indices of decoder output
-            decoder_input = torch.argmax(decoder_output, dim = -1)
+            topk_indices = torch.topk(decoder_output, 550)[1]
+            decoder_input = torch.multinomial(decoder_output[:,topk_indices], 1)
+#            decoder_input = torch.argmax(decoder_output, dim = -1)
 
             # Detokenize (to text) and write results to file
             for b in range(curr_batch_size):
                 result_dicts[b]["hypothesis"] = ""
-                word_b = data.inputs.vocab.iots[decoder_input[b]]        
+                word_b = data.inputs.vocab.itos[decoder_input[b]]        
                 result_dicts[b]["hypothesis"] += word_b + " "
 
             decoder_input = decoder_input.reshape(curr_batch_size, -1)
@@ -168,23 +172,25 @@ def main():
 
     # Use custom contexts on models
     rows_custom = []
-    test_batch(custom_batch, encoder, decoder, rows_custom, custom = True)
+    test_batch(custom_batch, encoder, decoder, rows_custom, device, custom = True)
     df_custom = pd.DataFrame(rows_custom, columns = ("premise", "hypothesis"))
-    df_custom.to_csv(os.path.join(RESULTS_PATH,args.model,"custom.csv"), sep = "\t")
+    df_custom.to_csv(os.path.join(RESULTS_PATH,args.model,"custom.csv"), sep = "\t",index = False)
+
+    sys.exit()
 
     # Use train sets on models
     if args.model == "entailment":
         rows_list_entail = []
         for batch_num, batch in enumerate(data.test_iter_entail):
-            test_batch(batch, encoder, decoder, rows_list_entail)
+            test_batch(batch, encoder, decoder, rows_list_entail, device)
         df_entail = pd.DataFrame(rows_list_entail, columns = ("premise", "hypothesis"))
-        df_entail.to_csv(os.path.join(RESULTS_PATH,args.model,"test.csv"), sep = "\t")
+        df_entail.to_csv(os.path.join(RESULTS_PATH,args.model,"test.csv"), sep = "\t", index = False)
     elif args.model == "contradiction":
         rows_list_contradict = []
         for batch_num, batch in enumerate(data.test_iter_contradict):
-            test_batch(batch, encoder, decoder, rows_list_contradict)
+            test_batch(batch, encoder, decoder, rows_list_contradict, device)
         df_contradict = pd.DataFrame(rows_list_contradict, columns = ("premise", "hypothesis"))
-        df_contradict.to_csv(os.path.join(RESULTS_PATH,args.model,"test.csv"), sep = "\t")
+        df_contradict.to_csv(os.path.join(RESULTS_PATH,args.model,"test.csv"), sep = "\t", index = False)
 
 
 if __name__ == "__main__":

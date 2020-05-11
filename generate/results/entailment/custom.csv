@@ -1,0 +1,6 @@
+	premise	hypothesis
+0	<unk> h e   b o y   g a v e   t h e   m a n   a n   a p p l e . <pad> <pad> <pad> 	<pad> 
+1	<unk> h e   c a t   h a s   t h r e e   w h i s k e r s . <pad> <pad> <pad> <pad> <pad> <pad> 	<pad> 
+2	<unk> h e   f a t h e r   l o o k e d   a t   h i s   s o n . <pad> <pad> <pad> <pad> 	<pad> 
+3	<unk> h e   s t u d e n t   i s   d r i v i n g   a   r e d   c a r . 	<pad> 
+4	<unk> h e   l a d y   o w n s   a t   l e a s t   4   c a t s . <pad> <pad> <pad> 	<pad> 

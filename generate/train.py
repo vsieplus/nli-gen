@@ -29,7 +29,7 @@ MODEL_FNAMES = {
 }
 
 # Negative likelihood loss, with SGD
-criterion = nn.NLLLoss()
+criterion = nn.NLLLoss(ignore_index=PAD_ID)
 
 # Function to train the seq2seq model, given a minibatch in the seq2seq model:
 #   (1) Run input batch through encoder, producing final hidden + cell state
