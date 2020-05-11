@@ -11,6 +11,7 @@ import sys
 
 import pandas as pd
 import torch
+import torch.nn.functional as F
 import torchtext
 
 INIT_TOKEN_ID = data.inputs.vocab.stoi[data.INIT_TOKEN]
@@ -102,19 +103,18 @@ def test_batch(batch, encoder, decoder, rows_list, device, custom = False):
             decoder_output, decoder_hidden, decoder_cell, decoder_attn = decoder(decoder_input,
                 decoder_hidden, decoder_cell, encoder_outputs, not_padded, device)
 
-            # Input to next timestep are argmax indices of decoder output
-            topk_indices = torch.topk(decoder_output, 550)[1]
-            decoder_input = torch.multinomial(decoder_output[:,topk_indices], 1)
-#            decoder_input = torch.argmax(decoder_output, dim = -1)
+            # Input to next timestep are sampled from top-k of dist.
+            decoder.input=torch.zeros(curr_batch_size, device=device)
 
             # Detokenize (to text) and write results to file
             for b in range(curr_batch_size):
+                topk_idxs = torch.topk(decoder_output[b], 1000)[1]
+                decoder_input[b] = torch.multinomial(F.softmax(decoder_output[b,topk_idxs], dim=-1), 1)
+
                 result_dicts[b]["hypothesis"] = ""
                 word_b = data.inputs.vocab.itos[decoder_input[b]]        
                 result_dicts[b]["hypothesis"] += word_b + " "
 
-            decoder_input = decoder_input.reshape(curr_batch_size, -1)
-            
 
     rows_list.extend(result_dicts)
     
