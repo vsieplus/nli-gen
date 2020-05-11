@@ -1,0 +1,6 @@
+premise	hypothesis
+t h e   b o y   g a v e   t h e   m a n   a n   a p p l e . <pad> <pad> <pad> 	turn 
+t h e   c a t   h a s   t h r e e   w h i s k e r s . <pad> <pad> <pad> <pad> <pad> <pad> 	fruit 
+t h e   f a t h e r   l o o k e d   a t   h i s   s o n . <pad> <pad> <pad> <pad> 	birds 
+t h e   s t u d e n t   i s   d r i v i n g   a   r e d   c a r . 	here 
+t h e   l a d y   o w n s   a t   l e a s t   f o u r   c a t s . 	past 

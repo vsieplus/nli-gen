@@ -1,5 +1,5 @@
-the boy gave the man an apple.
-the cat has three whiskers.
-the father looked at his son.
-the student is driving a red car.
-the lady owns at least four cats.
+<sos> the boy gave the man an apple .
+<sos> the cat has three whiskers .
+<sos> the father looked at his son .
+<sos> the student is driving a red car .
+<sos> the lady owns at least four cats .

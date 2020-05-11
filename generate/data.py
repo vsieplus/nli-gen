@@ -22,7 +22,8 @@ EMBED_SIZE = 200
 INIT_TOKEN = "<sos>"
 GLOVE_VECS_200D = torchtext.vocab.GloVe(name='6B', dim = EMBED_SIZE)
 
-device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+#device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+device = torch.device('cpu')
 
 # Load SNLI dataset from torchtext
 inputs = data.Field(lower = True, tokenize = 'spacy', batch_first = True, 
@@ -54,9 +55,11 @@ print("Setting up training and test sets")
 train_iter, dev_iter, test_iter = data.BucketIterator.splits((train, dev, test),
                                     batch_size = BATCH_SIZE, device = device)
 train_iter_entail, _, test_iter_entail = data.BucketIterator.splits(
-    (train_entail, dev, test_entail), batch_size = BATCH_SIZE, device = device)
+    (train_entail, dev, test_entail), batch_size = BATCH_SIZE, device = device, sort = False)
+#    sort_key=lambda x: len(x.premise), sort_within_batch = False)
 train_iter_contradict, _, test_iter_contradict = data.BucketIterator.splits(
-    (train_contradict, dev, test_contradict), batch_size = BATCH_SIZE, device = device)
+    (train_contradict, dev, test_contradict), batch_size = BATCH_SIZE, device = device, sort = False)
+#    sort_key=lambda x: len(x.premise), sort_within_batch = False)
 
 # Dicts for data iterators
 TRAIN_ITER_DICT = {

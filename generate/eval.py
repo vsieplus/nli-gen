@@ -16,7 +16,7 @@ import torchtext
 
 INIT_TOKEN_ID = data.inputs.vocab.stoi[data.INIT_TOKEN]
 PAD_ID = 1
-MAX_GEN_LEN = 15
+MAX_GEN_LEN = 25
 
 ABS_PATH = pathlib.Path(__file__).parent.absolute() 
 RESULTS_PATH = os.path.join(str(ABS_PATH), 'results/')
@@ -171,14 +171,16 @@ def main():
     custom_batch = torch.tensor(gen_contexts_tokenized, device=device)
 
     # Use custom contexts on models
+    print("Evaluating custom contexts")
     rows_custom = []
     test_batch(custom_batch, encoder, decoder, rows_custom, device, custom = True)
     df_custom = pd.DataFrame(rows_custom, columns = ("premise", "hypothesis"))
     df_custom.to_csv(os.path.join(RESULTS_PATH,args.model,"custom.csv"), sep = "\t",index = False)
 
-    sys.exit()
+#    sys.exit()
 
     # Use train sets on models
+    print("Evaluating test set")
     if args.model == "entailment":
         rows_list_entail = []
         for batch_num, batch in enumerate(data.test_iter_entail):
