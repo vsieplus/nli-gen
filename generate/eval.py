@@ -62,46 +62,53 @@ def test_batch(batch, encoder, decoder, rows_list, device, custom = False):
         # Feed input through encoder, track encoder outputs for attention
         for i in range(premises.size(1)):
             # Only pass examples not yet finished processing
-            not_padded = [j for j in range(premises.size(0)) if premises[j,i] != PAD_ID]
-            not_padded_bool = torch.tensor([idx in not_padded for idx in batch_idxs], 
-                                device=device)
-            not_padded_bool = not_padded_bool.view(-1, 1).repeat(1,
-                data.HIDDEN_SIZE).view(curr_batch_size, data.HIDDEN_SIZE)
+            padded = [j for j in range(premises.size(0)) if premises[j,i] == PAD_ID]
+            lengths = torch.ones(curr_batch_size, device=device)
+            lengths[padded] = 0.0
+
+#            not_padded = [j for j in range(premises.size(0)) if premises[j,i] != PAD_ID]
+#            not_padded_bool = torch.tensor([idx in not_padded for idx in batch_idxs], 
+#                                device=device)
+#            not_padded_bool = not_padded_bool.view(-1, 1).repeat(1,
+#                data.HIDDEN_SIZE).view(curr_batch_size, data.HIDDEN_SIZE)
 
             encoder_input = premises[:, i:i+1]
 
-            curr_hidden = torch.where(not_padded_bool, encoder_hidden[0], torch.tensor(0.)).unsqueeze(0)
-            curr_cell = torch.where(not_padded_bool, encoder_cell[0], torch.tensor(0.)).unsqueeze(0)
+#            curr_hidden = torch.where(not_padded_bool, encoder_hidden[0], torch.tensor(0.)).unsqueeze(0)
+#            curr_cell = torch.where(not_padded_bool, encoder_cell[0], torch.tensor(0.)).unsqueeze(0)
 
-            encoder_out, (next_hidden, next_cell) = encoder(encoder_input,
-                curr_hidden, curr_cell)
+            encoder_out, (encoder_hidden, encoder_cell) = encoder(encoder_input,
+                encoder_hidden, encoder_cell, lengths)
+
+            encoder_outputs[:, i] = encoder_out[:, 0]
 
             # Update overall hidden/cell
-            encoder_hidden = torch.where(not_padded_bool, next_hidden[0], encoder_hidden[0])
-            encoder_cell = torch.where(not_padded_bool, next_cell[0], encoder_cell[0])
+#            encoder_hidden = torch.where(not_padded_bool, next_hidden[0], encoder_hidden[0])
+#            encoder_cell = torch.where(not_padded_bool, next_cell[0], encoder_cell[0])
 
-            encoder_hidden = encoder_hidden.unsqueeze(0)
-            encoder_cell = encoder_cell.unsqueeze(0)
+#            encoder_hidden = encoder_hidden.unsqueeze(0)
+#            encoder_cell = encoder_cell.unsqueeze(0)
 
-            not_padded_and_seq_bool = torch.tensor([[b_idx in not_padded and seq_idx == i
-                for seq_idx in seq_idxs] for b_idx in batch_idxs], device=device)
-            not_padded_and_seq_bool = not_padded_and_seq_bool.unsqueeze(2).repeat(1,1,
-                data.HIDDEN_SIZE)
+#            not_padded_and_seq_bool = torch.tensor([[b_idx in not_padded and seq_idx == i
+#                for seq_idx in seq_idxs] for b_idx in batch_idxs], device=device)
+#            not_padded_and_seq_bool = not_padded_and_seq_bool.unsqueeze(2).repeat(1,1,
+#                data.HIDDEN_SIZE)
 
-            encoder_outputs = torch.where(not_padded_and_seq_bool, 
-                encoder_out[:,0:1].repeat(1,len(seq_idxs),1), encoder_outputs)
+#            encoder_outputs = torch.where(not_padded_and_seq_bool, 
+#                encoder_out[:,0:1].repeat(1,len(seq_idxs),1), encoder_outputs)
 
         # Decoder setup -> forward propogation
-        decoder_input = torch.tensor([INIT_TOKEN_ID], device=device)
-        decoder_input = decoder_input.repeat(curr_batch_size)
+        decoder_input = torch.tensor([[INIT_TOKEN_ID]], device=device)
+        decoder_input = decoder_input.repeat(curr_batch_size, 1)
 
-        decoder_hidden = encoder_hidden[0]
-        decoder_cell = encoder_cell[0]
+        decoder_hidden = encoder_hidden
+        decoder_cell = encoder_cell
 
         # Feed actual target token as input to next timestep
         for i in range(MAX_GEN_LEN):
             decoder_output, decoder_hidden, decoder_cell, decoder_attn = decoder(decoder_input,
-                decoder_hidden, decoder_cell, encoder_outputs, not_padded, device)
+                decoder_hidden, decoder_cell, encoder_outputs, torch.ones(curr_batch_size, 
+                device=device), device)
 
             # Input to next timestep are sampled from top-k of dist.
             decoder.input=torch.zeros(curr_batch_size, device=device)
