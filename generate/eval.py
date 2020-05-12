@@ -177,7 +177,7 @@ def main():
     df_custom = pd.DataFrame(rows_custom, columns = ("premise", "hypothesis"))
     df_custom.to_csv(os.path.join(RESULTS_PATH,args.model,"custom.csv"), sep = "\t",index = False)
 
-#    sys.exit()
+    sys.exit()
 
     # Use train sets on models
     print("Evaluating test set")

@@ -33,6 +33,9 @@ class Decoder(nn.Module):
         # Use the LSTM cell as recurrent unit
         self.lstm = nn.LSTM(embed_size + hidden_size, hidden_size, batch_first = True)
     
+        # Linear layer to vocab
+        self.linear_out = nn.Linear(hidden_size, vocab_size)
+
         # Generate output using logits from LSTM -> logsoftmax
         self.log_softmax = nn.LogSoftmax(dim = -1)
 
@@ -43,6 +46,7 @@ class Decoder(nn.Module):
     #   prev_c - previous cell state, shape: (same as hidden)
     #   encoder_outputs - outputs of encoder RNN, shape: (batch_size, seq_len, hidden_size)
     def forward(self, input_batch, prev_h, prev_c, encoder_outputs, lengths, device):  
+        lengths_clamped = lengths.clamp(min=1)
         # Get embedding of the input
         input_embeddings = self.embedding(input_batch)
         
@@ -56,7 +60,7 @@ class Decoder(nn.Module):
 
         for i in range(batch_size):
             for j in range(seq_len):
-                attn_weights[i, j] = self.attn(torch.cat((prev_h[i], 
+                attn_weights[i, j] = self.attn(torch.cat((prev_h[0,i], 
                     encoder_outputs[i, j]), dim = -1))
 
 #       for j in range(seq_len):
@@ -74,15 +78,26 @@ class Decoder(nn.Module):
 
         # Concatentate embeddings with context vectors
 
-        input_attended = torch.cat((input_embeddings.squeeze(1), 
-                                    context_vecs.squeeze(1)), dim = -1)
+        input_attended = torch.cat((input_embeddings, context_vecs), dim = -1)
 
         packed_input = rnn_utils.pack_padded_sequence(input_attended, batch_first = True,
-            enforce_sorted = False, lengths = lengths)
+            enforce_sorted = False, lengths = lengths_clamped)
 
         # Feed to LSTM along with previous hidden/cell state
-        packed_output, (hidden, cell) = self.lstm(input_attended, (prev_h, prev_c))
+        packed_output, (hidden, cell) = self.lstm(packed_input, (prev_h, prev_c))
         output, output_lens = rnn_utils.pad_packed_sequence(packed_output, 
-            batch_first = True, enforce_sorted = False)
+            batch_first = True)
+
+        hidden = hidden[0]
+        cell = cell[0]
+
+        output.masked_fill_((lengths == 0).view(input_batch.size(0), 1, -1), 0.0)
+        hidden.masked_fill_((lengths == 0).view(-1, 1), 0.0)
+        cell.masked_fill_((lengths == 0).view(-1, 1), 0.0)
+
+        hidden = hidden.unsqueeze(0)
+        cell = cell.unsqueeze(0)
+
+        output = self.linear_out(output.squeeze(1))
         output = self.log_softmax(output)
         return output, hidden, cell, attn_weights

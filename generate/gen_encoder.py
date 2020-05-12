@@ -32,16 +32,29 @@ class Encoder(nn.Module):
     #   h - hidden state, shape: (1, batch, hidden_size)
     #   c - cell state, shape: (same as h0)
     def forward(self, input_batch, h0, c0, lengths):
+        lengths_clamped = lengths.clamp(min=1)
+
         # Perform embedding element wise
         input_batch = self.embedding(input_batch)
 
         packed_input = rnn_utils.pack_padded_sequence(input_batch, batch_first = True,
-            enforce_sorted = False, lengths = lengths)
+            enforce_sorted = False, lengths = lengths_clamped)
 
         # Pass through lstm
         packed_output, (hidden, cell) = self.lstm(packed_input, (h0, c0))
         output, output_lens = rnn_utils.pad_packed_sequence(packed_output, 
             batch_first = True)
+
+        hidden = hidden[0]
+        cell = cell[0]
+
+        output.masked_fill_((lengths == 0).view(input_batch.size(0), 1, -1), 0.0)
+        hidden.masked_fill_((lengths == 0).view(-1, 1), 0.0)
+        cell.masked_fill_((lengths == 0).view(-1, 1), 0.0)
+
+        hidden = hidden.unsqueeze(0)
+        cell = cell.unsqueeze(0)
+
         return output, (hidden, cell)
 
     # Initial states for the LSTM
