@@ -17,7 +17,7 @@ import torchtext
 INIT_TOKEN_ID = data.inputs.vocab.stoi[data.INIT_TOKEN]
 PAD_ID = 1
 MAX_GEN_LEN = 25
-TOP_P = 0.9
+TOP_P = 0.8
 TOP_K = 100
 
 ABS_PATH = pathlib.Path(__file__).parent.absolute() 
@@ -48,7 +48,7 @@ def test_batch(batch, encoder, decoder, rows_list, device, custom = False, use_t
 
     for b in range(curr_batch_size):
         result_dicts[b]["premise"] = ""
-        result_dicts[b]["hypothesis"] = "<sos> "
+        result_dicts[b]["hypothesis"] = "<sos>"
 
         for w in range(premises[b, :].size(0)):
             premise = premises[b]
@@ -86,11 +86,20 @@ def test_batch(batch, encoder, decoder, rows_list, device, custom = False, use_t
 
                 else:
                     # use top-p sampling
-                    sorted_logits, sorted_indices = torch.sort(decoder_output[0])
+                    sorted_logits, sorted_indices = torch.sort(decoder_output[0], descending = True)
                     cum_probs = torch.cumsum(F.softmax(sorted_logits, dim = -1), dim  = -1)
 
-                    topp_idxs = cum_probs < TOP_P
-                    decoder_input[b] = torch.multinomial(F.softmax(decoder_output[b,topp_idxs], dim=-1), 1)
+                    idxs_to_rm = cum_probs > TOP_P
+
+                    # shift right
+                    idxs_to_rm[..., 1:] = idxs_to_rm[..., :-1].clone()
+                    idxs_to_rm[..., 0] = 0
+
+                    idxs_to_rm = sorted_indices[idxs_to_rm]
+
+                    decoder_output[b,idxs_to_rm] = -float('Inf')
+
+                    decoder_input[b] = torch.multinomial(F.softmax(decoder_output[b,:], dim=-1), 1)
 
                 word_b = data.inputs.vocab.itos[decoder_input[b]]        
                 result_dicts[b]["hypothesis"] += word_b + " "
@@ -157,7 +166,7 @@ def main():
     df_custom = pd.DataFrame(rows_custom, columns = ("premise", "hypothesis"))
     df_custom.to_csv(os.path.join(RESULTS_PATH,args.model,"custom.csv"), sep = "\t",index = False)
 
-    # Use train sets on models
+    # Use test sets on models
     print("Evaluating test set")
     if args.model == "entailment":
         rows_list_entail = []

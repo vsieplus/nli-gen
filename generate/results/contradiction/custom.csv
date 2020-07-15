@@ -1,6 +1,11 @@
 premise	hypothesis
-t h e   b o y   g a v e   t h e   m a n   a n   a p p l e . <pad> <pad> <pad> 	turn 
-t h e   c a t   h a s   t h r e e   w h i s k e r s . <pad> <pad> <pad> <pad> <pad> <pad> 	fruit 
-t h e   f a t h e r   l o o k e d   a t   h i s   s o n . <pad> <pad> <pad> <pad> 	birds 
-t h e   s t u d e n t   i s   d r i v i n g   a   r e d   c a r . 	here 
-t h e   l a d y   o w n s   a t   l e a s t   f o u r   c a t s . 	past 
+<sos> the boy gave the man an apple . 	<sos> a dog is running . 
+<sos> the cat has three whiskers . 	<sos> the woman is running . 
+<sos> the father looked at his son . 	<sos> a man is standing in a pirouette . 
+<sos> the student is driving a red car . 	<sos> the child is sitting on the city . 
+<sos> the lady owns at least four cats . 	<sos> the men are wearing a photo at a poops . 
+<sos> ten students are eating lunch . 	<sos> two guys stand on a house . 
+<sos> a dog jumped over the fence . 	<sos> the man is empty on a bench . 
+<sos> a green bird flew under the bridge . 	<sos> a man is riding a little hat . 
+<sos> a pen is on the table . 	<sos> the woman is in a girl . 
+<sos> some leaders had a meeting . 	<sos> a woman is sleeping on the ocean . 

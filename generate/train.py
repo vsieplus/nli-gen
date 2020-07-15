@@ -67,21 +67,18 @@ def train_batch(batch, encoder, decoder, encoder_optimizer, decoder_optimizer, d
         encoder_hidden, encoder_cell)
 
     # Decoder setup -> forward propogation
-    decoder_input = torch.tensor([[INIT_TOKEN_ID]], device=device)
-
     decoder_hidden = encoder_hidden
     decoder_cell = encoder_cell
 
-    for i in range(hypothesis.size(1)):
-        # Feed actual target token as input to next timestep (unless init)
-        if i > 0:
-            decoder_input = hypothesis[:, i-1:i]
+    for i in range(hypothesis.size(1) - 1):
+        # Feed actual target token as input to next timestep
+        decoder_input = hypothesis[:, i:i+1]
     
         decoder_output, decoder_hidden, decoder_cell = decoder(decoder_input,
             decoder_hidden, decoder_cell, device)
 
         # Compute loss
-        loss += criterion(decoder_output, hypothesis[:,i])
+        loss += criterion(decoder_output, hypothesis[:,i+1])
             
     # Backpropogation + Gradient descent
     loss.backward()
@@ -138,7 +135,7 @@ def main():
     parser.add_argument("--output_dir", type=str, help="output directory")
     parser.add_argument("--model_type", type=str, help="entailment or contradiction",
                         choices = GENERATION_TYPES)
-    parser.add_argument("--num_epochs", type=int, default=5) 
+    parser.add_argument("--num_epochs", type=int, default=3)
 
     args = parser.parse_args()
 
