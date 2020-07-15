@@ -18,4 +18,4 @@ Similarly to evaluate the models, call
 
 `python eval.py --model=MODEL_TYPE --contexts=PATH_TO_CONTEXTS`
 
-where `PATH_TO_CONTEXTS` is a path to a file containing generation contexts, one per line. For entailment, a provided context should entail the generated sentence. Conversely for contradiction, a provided context should contradict the generated sentence. Results will be stored in `results/`.
+where `PATH_TO_CONTEXTS` is a path to a file containing generation contexts, one per line. For entailment, a provided context ideally should entail the generated sentence. Conversely for contradiction, a provided context should contradict the generated sentence. Results will be stored in `results/`.

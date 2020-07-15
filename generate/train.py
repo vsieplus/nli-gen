@@ -49,8 +49,8 @@ criterion = nn.NLLLoss(ignore_index=PAD_ID)
 #   encoder/decoder (optimizer) - the encoder/decoder (optimizer), respectively
 def train_batch(batch, encoder, decoder, encoder_optimizer, decoder_optimizer, device):
 
-    premises = batch.premise
-    hypotheses = batch.hypothesis
+    premise = batch.premise
+    hypothesis = batch.hypothesis
 
     batch_size = batch.batch_size
     prem_seq_len = premises.size(1)
@@ -62,52 +62,10 @@ def train_batch(batch, encoder, decoder, encoder_optimizer, decoder_optimizer, d
 
     encoder_hidden = encoder.initHidden(batch_size, device)
     encoder_cell = encoder.initCell(batch_size, device)
-    encoder_outputs = torch.zeros(premises.size(0), premises.size(1), 
-                        encoder.hidden_size, device=device)
 
-    batch_idxs = torch.arange(batch_size, dtype=torch.int64, device=device)
-    seq_idxs = torch.arange(prem_seq_len, dtype=torch.int64, device=device)
-
-    # Feed input through encoder, track encoder outputs for attention
-    for i in range(premises.size(1)):
-        # # Only pass examples not yet finished processing
-        padded = [j for j in range(premises.size(0)) if premises[j,i] == PAD_ID]
-        lengths = torch.ones(batch_size, device=device)
-        lengths[padded] = 0.0
-
-        # not_padded_bool = torch.tensor([idx in not_padded for idx in batch_idxs], 
-        #                     device=device)
-        # not_padded_bool = not_padded_bool.view(-1, 1).repeat(1,
-        #     data.HIDDEN_SIZE).view(batch_size, data.HIDDEN_SIZE)
-#        curr_hidden = encoder_hidden[:,not_padded]
-#        curr_cell = encoder_cell[:,not_padded]
-
-        # curr_hidden = torch.where(not_padded_bool, encoder_hidden[0], 
-        #     torch.tensor(0., device=device)).unsqueeze(0)
-        # curr_cell = torch.where(not_padded_bool, encoder_cell[0],
-        #     torch.tensor(0., device=device)).unsqueeze(0)
-
-#        encoder_out, (next_hidden, next_cell) = encoder(encoder_input,
-#            curr_hidden, curr_cell)
-
-        # Update overall hidden/cell
-        # encoder_hidden = torch.where(not_padded_bool, next_hidden[0], encoder_hidden[0])
-        # encoder_cell = torch.where(not_padded_bool, next_cell[0], encoder_cell[0])
-
-        encoder_input = premises[:, i:i+1]
-
-        encoder_out, (encoder_hidden, encoder_cell) = encoder(encoder_input,
-            encoder_hidden, encoder_cell, lengths)
-
-        encoder_outputs[:, i] = encoder_out[:, 0]
-
-        # not_padded_and_seq_bool = torch.tensor([[b_idx in not_padded and seq_idx == i
-        #     for seq_idx in seq_idxs] for b_idx in batch_idxs], device=device)
-        # not_padded_and_seq_bool = not_padded_and_seq_bool.unsqueeze(2).repeat(1,1,
-        #     data.HIDDEN_SIZE)
-
-        # encoder_outputs = torch.where(not_padded_and_seq_bool, 
-        #     encoder_out[:,0:1].repeat(1,len(seq_idxs),1), encoder_outputs)
+    # Feed input through encoder, store outputs
+    encoder_out, (encoder_hidden, encoder_cell) = encoder(premise,
+        encoder_hidden, encoder_cell)
 
     # Decoder setup -> forward propogation
     decoder_input = torch.tensor([[INIT_TOKEN_ID]], device=device)
@@ -116,37 +74,16 @@ def train_batch(batch, encoder, decoder, encoder_optimizer, decoder_optimizer, d
     decoder_hidden = encoder_hidden
     decoder_cell = encoder_cell
 
-    # Feed actual target token as input to next timestep
     for i in range(hypotheses.size(1)):
-        lengths = torch.ones(batch_size, device=device)
-        if i > 0:                
-            # Only pass examples that are not done processing
-            padded = [j for j in range(batch_size) if hypotheses[j,i-1] == PAD_ID]
-
-            lengths[padded] = 0.0
-            # not_padded_bool = torch.tensor([idx in not_padded for idx in batch_idxs], 
-            #                     device=device)
-            # not_padded_bool = not_padded_bool.view(-1, 1).repeat(1,
-            #     data.HIDDEN_SIZE).view(batch_size, data.HIDDEN_SIZE)
-
-            decoder_input = hypotheses[:, i-1:i]
-        
-        # curr_hidden = torch.where(not_padded_bool, decoder_hidden,
-        #     torch.tensor(0., device=device))
-        # curr_cell = torch.where(not_padded_bool, decoder_cell,
-        #     torch.tensor(0., device=device))
-
-        decoder_output, decoder_hidden, decoder_cell, decoder_attn = decoder(decoder_input,
-            decoder_hidden, decoder_cell, encoder_outputs, lengths, device)
-
-#        decoder_hidden[not_padded] = next_hidden
-#        decoder_cell[not_padded] = next_cell
-
-        # decoder_hidden = torch.where(not_padded_bool, next_hidden, decoder_hidden)
-        # decoder_cell = torch.where(not_padded_bool, next_cell, decoder_cell)
+        # Feed actual target token as input to next timestep (unless init)
+        if i > 0:
+            decoder_input = hypothesis[:, i-1:i]
+    
+        decoder_output, decoder_hidden, decoder_cell = decoder(decoder_input,
+            decoder_hidden, decoder_cell, device)
 
         # Compute loss
-        loss += criterion(decoder_output, hypotheses[:,i])
+        loss += criterion(decoder_output, hypothesis[:,i])
             
     # Backpropogation + Gradient descent
     loss.backward()
@@ -159,7 +96,7 @@ def train_batch(batch, encoder, decoder, encoder_optimizer, decoder_optimizer, d
 
 
 # Train for the specified number of epochs
-def trainIterations(encoder, decoder, train_iter, n_epochs, device, print_every = 10):
+def trainIterations(encoder, decoder, train_iter, n_epochs, device, print_every = 25):
     start = time.time()
     print_loss_total = 0
 
@@ -187,15 +124,11 @@ def trainIterations(encoder, decoder, train_iter, n_epochs, device, print_every 
 
             print_loss_total += loss        
             
-#            if((batch_num + 1) % print_every == 0):
-            if (1 == 1) :
+            if((batch_num + 1) % print_every == 0):
                 print("batch num:", batch_num)
                 print_loss_avg = print_loss_total / print_every
                 print_loss_total = 0
                 print("avg loss:", print_loss_avg)
-
-            if batch_num == 1:
-                break
 
 
         print("-------------------------------------------------------------\n")

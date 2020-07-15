@@ -16,14 +16,13 @@ import pickle
 # Hyperparams
 NUM_EPOCHS = 25
 HIDDEN_SIZE = 256
-BATCH_SIZE = 64
+BATCH_SIZE = 1
 EMBED_SIZE = 200
 
 INIT_TOKEN = "<sos>"
 GLOVE_VECS_200D = torchtext.vocab.GloVe(name='6B', dim = EMBED_SIZE)
 
-#device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-device = torch.device('cpu')
+device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
 # Load SNLI dataset from torchtext
 inputs = data.Field(lower = True, tokenize = 'spacy', batch_first = True, 
