@@ -17,7 +17,7 @@ import torchtext
 INIT_TOKEN_ID = data.inputs.vocab.stoi[data.INIT_TOKEN]
 PAD_ID = 1
 MAX_GEN_LEN = 25
-TOP_P = 0.2
+TOP_P = 0.9
 TOP_K = 100
 
 ABS_PATH = pathlib.Path(__file__).parent.absolute() 
