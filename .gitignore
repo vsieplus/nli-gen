@@ -1,4 +1,5 @@
 .data
 .vector_cache
 __pycache__
-generate/models/*
+*/models/*
+writeup*

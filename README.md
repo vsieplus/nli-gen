@@ -3,18 +3,16 @@
 This project explores the use of deep learning methods to assist Natural
 Language Inference (NLI) with entailment and contradiction generation.
 
-There are two tasks to be specified.
+### Entailment and Contradiction Generation
 
-## (1) Entailment and Contradiction Generation
+Given an input sentence A, we wish to generate output sentences B and C,
+which A entails and contradicts, respectively. Informally, we say that A entails
+B if when A is true, it follows that B is true. For example, "The pen is on the table"
+entails that "There is something on the table." We say two sentences are contradictory
+when they cannot both be true at the same time. Note that while contradiction is
+symmetric, entailment is not in general.
 
-Given an input sentence A, we wish to generate output sentences B<sub>1</sub>, B<sub>2</sub>, 
-..., and C<sub>1</sub>, C<sub>2</sub>, ... which A entails and contradicts. In addition, we are also
-interested in in the converse task of given an input sentence A, generating 
-output sentences D<sub>1</sub>, D<sub>2</sub>, … which entail A. Note that the analogous task for
-contradiction is identical to the original, since contradiction between two 
-sentences is symmetric.
-
-## (2) Natural Language Inference
+### Natural Language Inference
 
 Given an input sentence A and hypothesis sentence H, we aim to determine whether A entails,
 contradicts, or is neutral to H. In theory, this classification process will be
@@ -28,4 +26,4 @@ generation seems to be doing.
 
 As such, there are two separate models as part of this project - one for
 generation, and one for inference - both are built using the Pytorch library.
-For further implementation details, refer to `writeup/writeup.pdf`.
+For further implementation details, refer to the code within each directory.
