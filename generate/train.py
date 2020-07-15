@@ -138,7 +138,7 @@ def main():
     parser.add_argument("--output_dir", type=str, help="output directory")
     parser.add_argument("--model_type", type=str, help="entailment or contradiction",
                         choices = GENERATION_TYPES)
-    parser.add_argument("--num_epochs", type=int, default=1) 
+    parser.add_argument("--num_epochs", type=int, default=5) 
 
     args = parser.parse_args()
 
