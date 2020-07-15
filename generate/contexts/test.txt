@@ -3,3 +3,6 @@
 <sos> the father looked at his son .
 <sos> the student is driving a red car .
 <sos> the lady owns at least four cats .
+<sos> ten students are eating lunch .
+<sos> a dog jumped over the fence .
+<sos> a green bird flew under the bridge .

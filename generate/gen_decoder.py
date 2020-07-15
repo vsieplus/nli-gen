@@ -23,7 +23,7 @@ class Decoder(nn.Module):
         self.embedding.weight.data.copy_(embeddings)
 
         # Use the LSTM cell as recurrent unit
-        self.lstm = nn.LSTM(embed_size + hidden_size, hidden_size, batch_first = True)
+        self.lstm = nn.LSTM(embed_size, hidden_size, batch_first = True)
     
         # Linear layer to vocab
         self.linear_out = nn.Linear(hidden_size, vocab_size)
@@ -41,8 +41,9 @@ class Decoder(nn.Module):
         input_embeddings = self.embedding(input_batch)
 
         # Feed to LSTM along with previous hidden/cell state
-        output, (hidden, cell) = self.lstm(packed_input, (prev_h, prev_c))
+        output, (hidden, cell) = self.lstm(input_embeddings, (prev_h, prev_c))
 
-        output = self.linear_out(output.squeeze(1))
+        output = self.linear_out(output)
         output = self.log_softmax(output)
+        output = output.squeeze(0)
         return output, hidden, cell

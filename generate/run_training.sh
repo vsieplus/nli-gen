@@ -9,10 +9,12 @@ else
     exit 1
 fi
 
+num_epochs=$2
+
 mkdir -p models/entail-gen
 mkdir -p models/contra-gen
 
 echo 'Training in progress...'
-python3 train.py --output_dir=$output_dir --model_type=$1
+python3 train.py --output_dir=$output_dir --model_type=$1 --num_epochs=$num_epochs
 
 echo "model saved to $output_dir"

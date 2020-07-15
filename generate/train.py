@@ -16,7 +16,7 @@ import torch.nn.utils.rnn as rnn_utils
 from torch import optim
 import pandas as pd
 
-LEARNING_RATE = 0.005
+LEARNING_RATE = 0.01
 PAD_ID = 1
 INIT_TOKEN_ID = data.inputs.vocab.stoi[data.INIT_TOKEN]
 
@@ -30,7 +30,7 @@ MODEL_FNAMES = {
 }
 
 # Negative likelihood loss, with SGD
-criterion = nn.NLLLoss(ignore_index=PAD_ID)
+criterion = nn.NLLLoss()
 
 # Function to train the seq2seq model, given a minibatch in the seq2seq model:
 #   (1) Run input batch through encoder, producing final hidden + cell state
@@ -53,7 +53,6 @@ def train_batch(batch, encoder, decoder, encoder_optimizer, decoder_optimizer, d
     hypothesis = batch.hypothesis
 
     batch_size = batch.batch_size
-    prem_seq_len = premises.size(1)
 
     encoder_optimizer.zero_grad()
     decoder_optimizer.zero_grad()
@@ -69,12 +68,11 @@ def train_batch(batch, encoder, decoder, encoder_optimizer, decoder_optimizer, d
 
     # Decoder setup -> forward propogation
     decoder_input = torch.tensor([[INIT_TOKEN_ID]], device=device)
-    decoder_input = decoder_input.repeat(batch_size,1)
 
     decoder_hidden = encoder_hidden
     decoder_cell = encoder_cell
 
-    for i in range(hypotheses.size(1)):
+    for i in range(hypothesis.size(1)):
         # Feed actual target token as input to next timestep (unless init)
         if i > 0:
             decoder_input = hypothesis[:, i-1:i]
@@ -84,6 +82,8 @@ def train_batch(batch, encoder, decoder, encoder_optimizer, decoder_optimizer, d
 
         # Compute loss
         loss += criterion(decoder_output, hypothesis[:,i])
+
+        if hypothesis[:,i] == "." break;
             
     # Backpropogation + Gradient descent
     loss.backward()
