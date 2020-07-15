@@ -40,13 +40,15 @@ def test_batch(batch, encoder, decoder, rows_list, device, custom = False, use_t
     else:
         premises = batch.premise
 
+    premises.to(device)
+
     curr_batch_size = premises.size(0)
     
     result_dicts = [{} for _ in range(curr_batch_size)]
 
     for b in range(curr_batch_size):
         result_dicts[b]["premise"] = ""
-        result_dicts[b]["hypothesis"] = ""
+        result_dicts[b]["hypothesis"] = "<sos> "
 
         for w in range(premises[b, :].size(0)):
             premise = premises[b]
@@ -67,8 +69,6 @@ def test_batch(batch, encoder, decoder, rows_list, device, custom = False, use_t
 
         decoder_hidden = encoder_hidden
         decoder_cell = encoder_cell
-
-        result_dicts[0]["hypothesis"] += data.inputs.vocab.itos[decoder_input[0]] + " "
 
         # Feed actual target token as input to next timestep
         for i in range(MAX_GEN_LEN):
@@ -104,7 +104,7 @@ def test_batch(batch, encoder, decoder, rows_list, device, custom = False, use_t
     
 
 def main():
-    device = torch.device("cpu")
+    device = data.device
 
     parser = argparse.ArgumentParser()
     parser.add_argument("--model", type=str)
@@ -124,22 +124,19 @@ def main():
     decoder = gen_decoder.Decoder(len(data.inputs.vocab), data.HIDDEN_SIZE, 
         embeddings = data.inputs.vocab.vectors, embed_size = data.EMBED_SIZE)
 
-    encoder.to(device)
-    decoder.to(device)
-
     MODEL_PATH = os.path.join(ABS_PATH, MODEL_PATH_DICT[args.model], MODEL_FNAMES[args.model])
 
     model = torch.load(MODEL_PATH, map_location=device)
     encoder.load_state_dict(model['encoder_state_dict'])
     decoder.load_state_dict(model['decoder_state_dict'])
 
-    encoder.eval()
-    decoder.eval()
-
     print("Starting Evaluation")
 
     encoder.eval()
     decoder.eval()
+
+    encoder.to(device)
+    decoder.to(device)
 
     with open(args.contexts, "r") as f:
         gen_contexts = f.read().splitlines() 
@@ -165,7 +162,8 @@ def main():
     if args.model == "entailment":
         rows_list_entail = []
         for batch_num, batch in enumerate(data.test_iter_entail):
-            test_batch(batch, encoder, decoder, rows_list_entail, device, use_topk = False)
+            test_batch(batch, encoder, decoder, rows_list_entail, device, custom = False, use_topk = False)
+
         df_entail = pd.DataFrame(rows_list_entail, columns = ("premise", "hypothesis"))
         df_entail.to_csv(os.path.join(RESULTS_PATH,args.model,"test.csv"), sep = "\t", index = False)
     elif args.model == "contradiction":

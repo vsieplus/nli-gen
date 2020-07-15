@@ -6,3 +6,5 @@
 <sos> ten students are eating lunch .
 <sos> a dog jumped over the fence .
 <sos> a green bird flew under the bridge .
+<sos> a pen is on the table .
+<sos> some leaders had a meeting .
