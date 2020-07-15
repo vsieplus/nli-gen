@@ -16,7 +16,7 @@ import torch.nn.utils.rnn as rnn_utils
 from torch import optim
 import pandas as pd
 
-LEARNING_RATE = 0.01
+LEARNING_RATE = 0.025
 PAD_ID = 1
 INIT_TOKEN_ID = data.inputs.vocab.stoi[data.INIT_TOKEN]
 
@@ -135,7 +135,7 @@ def main():
     parser.add_argument("--output_dir", type=str, help="output directory")
     parser.add_argument("--model_type", type=str, help="entailment or contradiction",
                         choices = GENERATION_TYPES)
-    parser.add_argument("--num_epochs", type=int, default=3)
+    parser.add_argument("--num_epochs", type=int, default=1)
 
     args = parser.parse_args()
 

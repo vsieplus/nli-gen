@@ -48,7 +48,7 @@ def test_batch(batch, encoder, decoder, rows_list, device, custom = False, use_t
 
     for b in range(curr_batch_size):
         result_dicts[b]["premise"] = ""
-        result_dicts[b]["hypothesis"] = "<sos>"
+        result_dicts[b]["hypothesis"] = "<sos> "
 
         for w in range(premises[b, :].size(0)):
             premise = premises[b]
