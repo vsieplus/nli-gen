@@ -43,7 +43,7 @@
 
 \setlength{\LTleft}{0pt}
 
-\title{Generating Entailments and Contradictions to assist Natural Language Inference}
+\title{Generating Natural Language Entailments and Contradictions}
 \date{}
 \author{Ryan Sie}
 
@@ -54,43 +54,43 @@
 \section{Introduction}
 
 
-This paper explores the use of deep learning methods for two natural language processing tasks related to Natural Language Inference (NLI). NLI can be described as the general task of determining the particular semantic relationships between multiple sentences - for instance, whether one particular sentence can be inferred from another, or whether two sentences are contradictory. The ability to automate NLI can be very useful for aiding various NLP tasks like information extraction, question answering, and machine translation.
+This paper explores the use of deep learning methods for a generation task related to Natural Language Inference (NLI). NLI can be described as the general task of determining the particular semantic relationships between multiple sentences - for instance, whether one particular sentence can be inferred from another, or whether two sentences are contradictory. The ability to automate NLI can be very useful for aiding various NLP tasks like information extraction, question answering, and machine translation.
 
 \bigskip
 
 The first task is the generation of entailments and contradictions. Given an input sentence $A$, we wish to produce a sentence $B$ which $A$ \textbf{entails} and a sentence $C$ which $A$ \textbf{contradicts}. Informally speaking, sentence $a$ \textbf{entails} sentence $b$ if when $a$ is true, it follows that $b$ is true. Conversely, sentence $a$ \textbf{contradicts} sentence $b$ if when $a$ is true, it follows that $b$ is false. If neither of these relationships hold, we say that $a$ and $b$ are \textbf{neutral}. A more formal representation of these ideas is discussed in section \textbf{4}. 
 
-\bigskip
-
-The second task is the classification task of recognizing textual entailment (RTE). Given an input sentence $A$ and hypothesis sentence $H$, we wish to predict if $A$ \textbf{entails}, \textbf{contradicts}, or is \textbf{neutral to} $H$. We propose using the results of the generation task to directly assist this task, motivated by knowledge of basic semantic theory.
+%\bigskip
+%
+%The second task is the classification task of recognizing textual entailment (RTE). Given an input sentence $A$ and hypothesis sentence $H$, we wish to predict if $A$ \textbf{entails}, \textbf{contradicts}, or is \textbf{neutral to} $H$. We propose using the results of the generation task to directly assist this task, motivated by knowledge of basic semantic theory.
 
 \section{Previous Work}
 
 The models for the generation task are standard sequence-to-sequence models \cite{seq-to-seq-sutskever} which use the LSTM \cite{lstm-schmid} recurrent unit in encoder and decoder recurrent neural networks (RNNs). The use of sequence-to-sequence models has seen great success in a wide range of NLP tasks, and is a natural choice for a generation task like this. Indeed, this particular model architecture has been previously successfully implemented for the same generation task described here by Kolesnyk et al. \cite{gen-nli-kolesnyk}.
 
-\bigskip
-
-The model for the classification task also makes use of recurrent neural networks with the LSTM \cite{lstm-schmid} recurrent unit to produce compact representations, along with an MLP for the actual classification. The base architecture used for our model is inspired by the work of Wang et al. \cite{wang-nli}, and makes use of two RNNs which separately process the input and hypothesis sentences. Furthermore, the architecture makes use of word-by-word attention \cite{attention-rockt}. Our model builds on top of this architecture by utilizing the results of the generation model, as described in the \textbf{Model} section.
+%\bigskip
+%
+%The model for the classification task also makes use of recurrent neural networks with the LSTM \cite{lstm-schmid} recurrent unit to produce compact representations, along with an MLP for the actual classification. The base architecture used for our model is inspired by the work of Wang et al. \cite{wang-nli}, and makes use of two RNNs which separately process the input and hypothesis sentences. Furthermore, the architecture makes use of word-by-word attention \cite{attention-rockt}. Our model builds on top of this architecture by utilizing the results of the generation model, as described in the \textbf{Model} section.
 
 \section{Data}
 
-For both tasks, use the Stanford Natural Language Inference (SNLI) corpus \cite{snli-stanford}, which consists of pairs of human-produced input and hypothesis sentences, along with corresponding classification labels of entailment, contradiction, or neutrality between the two sentences. For the generation task, we filter the dataset to the class corresponding to the type of sentence we wish to generate. In particular, for reverse entailment generation, we can switch the order in which the sentences are processed.
+For both generation tasks, use the Stanford Natural Language Inference (SNLI) corpus \cite{snli-stanford}, which consists of pairs of human-produced input and hypothesis sentences, along with corresponding classification labels of entailment, contradiction, or neutrality between the two sentences. We train one model to generate entailments, and another to generate contradictions, only differing in the training data used. After splitting into train/dev/test sets there were roughly 180,000 training examples per model.
 
 \bigskip
 
-To avoid potential inter-model conflicts arising from reuse of data, we randomly split the dataset 50/50 between the two tasks. The result is 
+%To avoid potential inter-model conflicts arising from reuse of data, we randomly split the dataset 50/50 between the two tasks. The result is 
+%
+%\bigskip
 
-\bigskip
+We also make use of the GloVe \cite{glove} pre-trained 200 dimension word embeddings in each model.n
 
-We also make use of the GloVe \cite{glove} pre-trained 200 dimension word embeddings in each model.
+\section{Linguistic Background}
 
-\section{Linguistic Motivation}
 
-In the linguistic subfield of semantics, the relationships of \textbf{entailments} and \textbf{contradictions} between sentences in natural language are well studied phenomena. The models discussed in this paper attempt to make use of various parts of semantic theory in their design. This section will provide a brief introduction and overview of the core ideas that motivate the models' architectures.
+%The models discussed in this paper attempt to make use of various parts of semantic theory in their design. This section will provide a brief introduction and overview of the core ideas that motivate the models' architectures.
 
-\bigskip
-
-A common way to formalize the representation of `declarative' natural language sentences are as sets of possible worlds in which they are true, in the mathematical sense of \textit{set}. A possible world can simply be thought of any particular arrangement of circumstances in the real world that can be imagined. For our purposes it will suffice to describe a possible world $w$ in words. For instance, in one world you might own a goldfish, while in another, you might not. Then a sentence $S = \{w_1, ..., w_k, ...\}$ is a simple set containing possible worlds $w_i$ in which the sentence is true. Note that this set may be infinite (in fact, many are), and even empty. To help illustrate this formulation, below are some example sentences with descriptions of some possible worlds they contain.
+%\bigskip
+In the linguistic subfield of semantics, the relationships of \textbf{entailments} and \textbf{contradictions} between sentences in natural language are well studied phenomena. A common way to formalize the representation of `declarative' natural language sentences are as sets of possible worlds in which they are true, in the mathematical sense of \textit{set}. A possible world can simply be thought of any particular arrangement of circumstances in the real world that can be imagined. For our purposes it will suffice to describe a possible world $w$ in words. For instance, in one world you might own a goldfish, while in another, you might not. Then a sentence $S = \{w_1, ..., w_k, ...\}$ is a simple set containing possible worlds $w_i$ in which the sentence is true. Note that this set may be infinite (in fact, many are), and even empty. To help illustrate this formulation, below are some example sentences with descriptions of some possible worlds they contain.
 
 \begin{exe}
 \ex I ate breakfast
@@ -113,7 +113,7 @@ A common way to formalize the representation of `declarative' natural language s
 \end{xlist}
 \end{exe}
 
-Examples (3) and (4) would correspond to the sets $W$ and $\emptyset$, respectively, where $W$ is the set of all possible worlds. As a convention, for a sentence $A$ we will denote $S_A$ as the set of possible worlds in which $A$ is true. With this formulation setup, we can now introduce the following definitions:
+Examples (3) and (4) would correspond to the sets $W$ and $\varnothing$, respectively, where $W$ is the set of all possible worlds. As a convention, for a sentence $A$ we will denote $S_A$ as the set of possible worlds in which $A$ is true. With this formulation setup, we can now introduce the following definitions:
 
 \begin{definition}
 Let $A$, $B$ be two sentences. We say that $A$ \textbf{entails} $B$ if when $A$ is true, it follows that $B$ is true. This occurs when every possible world in $S_A$ is a possible world in $S_B$, or $S_A \subseteq S_B$. \end{definition}
@@ -125,21 +125,21 @@ Let $A$, $B$ be two sentences. We say that $A$ \textbf{entails} $B$ if when $A$ 
 \begin{definition}
 	Let $A$, $B$ be two sentences. We say that $A$ and $B$ are \textbf{neutral} if the truth value of one sentence has no bearing on the truth value of the other. This occurs when some but not all possible world(s) in $S_A$ is a (are) possible world(s) in $S_B$, and vice versa. This is satisfied when $S_A \cap S_B \neq \emptyset, S_A \nsubseteq S_B$, and $S_B \nsubseteq S_A$. \end{definition}
 
-With these definitions in place, we can state some useful facts about these relationships which follow from basic set theory.
-
-\bigskip
-
-Let $A$, $B$, and $C$ be sentences.
-
-\begin{fact}
-	If $A$ entails $B$ and $B$ entails $C$, then $A$ entails $C$.
-\end{fact}
-\begin{fact}
-	If $A$ contradicts $B$, then $B$ contradicts $A$.
-\end{fact}
-\begin{fact}
-	If $A$ contradicts $B$, and $C$ entails $B$, then $A$ contradicts $C$.
-\end{fact}
+%With these definitions in place, we can state some useful facts about these relationships which follow from basic set theory.
+%
+%\bigskip
+%
+%Let $A$, $B$, and $C$ be sentences.
+%
+%\begin{fact}
+%	If $A$ entails $B$ and $B$ entails $C$, then $A$ entails $C$.
+%\end{fact}
+%\begin{fact}
+%	If $A$ contradicts $B$, then $B$ contradicts $A$.
+%\end{fact}
+%\begin{fact}
+%	If $A$ contradicts $B$, and $C$ entails $B$, then $A$ contradicts $C$.
+%\end{fact}
 
 \section{Model}
 
@@ -168,35 +168,29 @@ The encoder RNN thus produces $n$ pairs of cell and hidden states $(\mathbf{c}_1
 
 \subsubsection{Decoder}
 
-We implement word-by-word attention in the decoder with an attention MLP, in order to capture more intricate relationships between particular lexical items across the input and output sentences. This MLP can be described as a function $\text{MLP}_{attn} : \mathbb{R}^{d_{enc} + d_{dec}} \to \mathbb{R}$, where $d_{enc}, d_{dec}$ are the hidden state dimensions in the encoder and decoder, respectively (In our case we set them to be equal). $\text{MLP}_{attn}$ takes in the concatenation of the previous hidden state before decoder timestep $j$, and some hidden state from the encoder outputs at timestep $i$, to eventually produce a normalized attention weight $\alpha_{j_{i}}$ with a final softmax layer. We also make use of a prediction MLP, $\text{MLP}_{pred}$ for the actual generation.
+%We implement word-by-word attention in the decoder with an attention MLP, in order to capture more intricate relationships between particular lexical items across the input and output sentences. This MLP can be described as a function $\text{MLP}_{attn} : \mathbb{R}^{d_{enc} + d_{dec}} \to \mathbb{R}$, where $d_{enc}, d_{dec}$ are the hidden state dimensions in the encoder and decoder, respectively (In our case we set them to be equal). $\text{MLP}_{attn}$ takes in the concatenation of the previous hidden state before decoder timestep $j$, and some hidden state from the encoder outputs at timestep $i$, to eventually produce a normalized attention weight $\alpha_{j_{i}}$ with a final softmax layer. 
+
+The architecture for the decoder is analogous to that of the encoder. We use the final hidden and cell state from the encoder as the decoder's initial ones. We also make use of a prediction MLP, $\text{MLP}_{pred}$ for the actual generation at each timestep. During training we use teacher forcing to give the true labels.
 
 \bigskip
 
- The following algorithm describes the behavior of the decoder RNN during training, assuming that $T = u_1u_2...u_m$ is the observed output sentence corresponding to the input sentence $S = w_1w_2...w_n$, and $t_j$ is the index of the nonzero entry of the one-hot vector of $u_j$.
+ The following algorithm describes the behavior of the decoder RNN during training, assuming that $T = u_1u_2...u_m$ is the observed hypothesis sentence corresponding to the premise sentence $S = w_1w_2...w_n$, and $t_j$ is the index of the nonzero entry of the one-hot vector of $u_j$.
 
 \begin{gather}
 \text{Take } \mathbf{b}_0 = \mathbf{c}_n, \mathbf{g}_0 = \mathbf{h}_n \\
 \text{for j = 1, ..., m} \\
-	\qquad\text{for i = 1, ..., n} \\
-		\qquad\qquad \bar{\alpha_{j_{i}}} = \text{MLP}_{attn}(\text{concat}(\mathbf{g}_{j-1},\mathbf{h}_i))\\
-		\qquad\qquad \alpha_{j_{i}} = \text{softmax}(\bar{\alpha_{j_{1}}}, ..., \bar{\alpha_{j_{n}}})_{(i)} \\
-	\qquad \mathbf{v}_j = \sum_{i = 1}^{n}\alpha_{j_{i}}\mathbf{h}_i \\
+%	\qquad\text{for i = 1, ..., n} \\
+%		\qquad\qquad \bar{\alpha_{j_{i}}} = \text{MLP}_{attn}(\text{concat}(\mathbf{g}_{j-1},\mathbf{h}_i))\\
+%		\qquad\qquad \alpha_{j_{i}} = \text{softmax}(\bar{\alpha_{j_{1}}}, ..., \bar{\alpha_{j_{n}}})_{(i)} \\
+%	\qquad \mathbf{v}_j = \sum_{i = 1}^{n}\alpha_{j_{i}}\mathbf{h}_i \\
 	\qquad \mathbf{x}_j = \text{GloVe}(u_j)  \\
-	\qquad (\mathbf{b}_{j}, \mathbf{g}_{j}) = \textbf{LSTM}((\mathbf{b}_{j-1}, \mathbf{g}_{j-1}), \text{concat}(\mathbf{x}_{j}, \mathbf{v}_j)) \\
+	\qquad (\mathbf{b}_{j}, \mathbf{g}_{j}) = \textbf{LSTM}((\mathbf{b}_{j-1}, \mathbf{g}_{j-1}), \mathbf{x}_{j}) \\
 	\qquad\mathbf{y_j} = \text{MLP}_{pred}(\mathbf{g}_j) \\
 	\qquad\text{loss}_j = -\text{log}(\mathbf{y_j}_{(t_j)}) \\
 \text{loss}_{total} = \sum_{j=1}^{m}\text{loss}_j
 \end{gather}
 
-Steps (8) - (10) involve the computation of context vectors $\mathbf{v}_j$ for word-by-word attention, while steps (13) - (15) takes care of the generation, and computing the corresponding loss with negative log likelihood with the original sentence $T$.  We can then perform an optimization procedure like Stochastic Gradient Descent to train the model.
-
-\subsection{Inference Model}
-
-\section{Results}
-
-\section{Conclusion}
-
-\bigskip
+Steps (9) - (10) takes care of the generation, and computing the corresponding loss with negative log likelihood with the original sentence $T$.  We then perform Stochastic Gradient Descent to train the model.
 
 \bibliography{references}
 
