@@ -12,15 +12,18 @@ class Decoder(nn.Module):
     #   hidden_size - # of features of the hidden state vectors
     #   embed_size - # of features in embedding vectors
     #   embeddings - (optional pretrained embeddings)
-    def __init__(self, vocab_size, hidden_size, embed_size, embeddings = None):
+    def __init__(self, vocab_size, hidden_size, embed_size, pad_idx, unk_idx, embeddings = None):
         super(Decoder, self).__init__()
 
         self.hidden_size = hidden_size
         self.num_lstm_layers = 1
 
         # Embeddings for our input tokens (which are previous outputs) at each timestep
-        self.embedding = nn.Embedding(vocab_size, embed_size)
+        self.embedding = nn.Embedding(vocab_size, embed_size, padding_idx = pad_idx)
         self.embedding.weight.data.copy_(embeddings)
+
+        self.embedding.weight.data[pad_idx] = torch.zeros(embed_size)
+        self.embedding.weight.data[unk_idx] = torch.zeros(embed_size)
 
         # Use the LSTM cell as recurrent unit
         self.lstm = nn.LSTM(embed_size, hidden_size, batch_first = True)

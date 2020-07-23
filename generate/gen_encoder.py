@@ -12,14 +12,17 @@ class Encoder(nn.Module):
     #   hidden_size - dimension of hidden states
     #   embed_size - dimension of embeddings
     #   embeddings - (pretrained embeddings)
-    def __init__(self, vocab_size, hidden_size, embed_size, embeddings = None):
+    def __init__(self, vocab_size, hidden_size, embed_size, pad_idx, unk_idx, embeddings = None):
         super(Encoder, self).__init__()
 
         self.hidden_size = hidden_size
         
         # Embeddings for our input tokens at each timestep
-        self.embedding = nn.Embedding(vocab_size, embed_size)
+        self.embedding = nn.Embedding(vocab_size, embed_size, padding_idx = pad_idx)
         self.embedding.weight.data.copy_(embeddings)
+
+        self.embedding.weight.data[pad_idx] = torch.zeros(embed_size)
+        self.embedding.weight.data[unk_idx] = torch.zeros(embed_size)
 
         # LSTM RNN, accepts:
         #   - input of shape (batch_size, seq_len) [embeddings]
