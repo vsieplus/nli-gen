@@ -33,11 +33,15 @@ train, dev, test = datasets.SNLI.splits(inputs, labels)
 
 train_entail = data.Dataset(train.examples, train.fields, 
     filter_pred = lambda x: x.label == "entailment")
+dev_entail = data.Dataset(dev.examples, dev.fields,
+    filter_pred = lambda x: x.label == "entailment")
 test_entail = data.Dataset(test.examples, test.fields, 
     filter_pred = lambda x: x.label == "entailment")
 
 train_contradict = data.Dataset(train.examples, train.fields, 
     filter_pred = lambda x: x.label == "contradiction")
+dev_contradict = data.Dataset(dev.examples, dev.fields,
+    filter_pred = lambda x: x.label == "contradict")
 test_contradict = data.Dataset(test.examples, test.fields, 
     filter_pred = lambda x: x.label == "contradiction")
 
@@ -53,17 +57,21 @@ inputs.vocab.load_vectors(GLOVE_VECS_200D)
 print("Setting up training and test sets")
 train_iter, dev_iter, test_iter = data.BucketIterator.splits((train, dev, test),
                                     batch_size = BATCH_SIZE, device = device)
-train_iter_entail, _, test_iter_entail = data.BucketIterator.splits(
-    (train_entail, dev, test_entail), batch_size = BATCH_SIZE, device = device, sort = False)
+train_iter_entail, dev_iter_entail, test_iter_entail = data.BucketIterator.splits(
+    (train_entail, dev_entail, test_entail), batch_size = BATCH_SIZE, device = device, sort = False)
 #    sort_key=lambda x: len(x.premise), sort_within_batch = False)
-train_iter_contradict, _, test_iter_contradict = data.BucketIterator.splits(
-    (train_contradict, dev, test_contradict), batch_size = BATCH_SIZE, device = device, sort = False)
+train_iter_contradict, dev_iter_contradict, test_iter_contradict = data.BucketIterator.splits(
+    (train_contradict, dev_contracit, test_contradict), batch_size = BATCH_SIZE, device = device, sort = False)
 #    sort_key=lambda x: len(x.premise), sort_within_batch = False)
 
 # Dicts for data iterators
 TRAIN_ITER_DICT = {
     "entailment": train_iter_entail,
     "contradiction": train_iter_contradict,    
+}
+DEV_ITER_DICT = {
+    "entailment": dev_iter_entail,
+    "contradiction": dev_iter_contradict,    
 }
 TEST_ITER_DICT = {
     "entailment": test_iter_entail,
