@@ -16,7 +16,7 @@ import torch.nn.utils.rnn as rnn_utils
 from torch import optim
 import pandas as pd
 
-LEARNING_RATE = 0.025
+LEARNING_RATE = 0.01
 
 ABS_PATH = pathlib.Path(__file__).parent.absolute() 
 MODELS_PATH = os.path.join(str(ABS_PATH), 'models/')
@@ -115,7 +115,7 @@ def evaluate(dev_iter, encoder, decoder, device):
     return total_loss / len(dev_iter)
 
 # Train for the specified number of epochs
-def trainIterations(encoder, decoder, train_iter, dev_iter, n_epochs, device, args, print_every = 500):
+def trainIterations(encoder, decoder, train_iter, dev_iter, n_epochs, device, args, print_every = 2000):
     start = time.time()
     print_loss_total = 0
 
@@ -124,8 +124,8 @@ def trainIterations(encoder, decoder, train_iter, dev_iter, n_epochs, device, ar
     encoder.train()
     decoder.train()
 
-    encoder_optimizer = optim.SGD(encoder.parameters(), lr = LEARNING_RATE, weight_decay = 0.01)
-    decoder_optimizer = optim.SGD(decoder.parameters(), lr = LEARNING_RATE, weight_decay = 0.01)
+    encoder_optimizer = optim.Adam(encoder.parameters(), lr = LEARNING_RATE)
+    decoder_optimizer = optim.Adam(decoder.parameters(), lr = LEARNING_RATE)
 
     min_valid_loss = float('inf')
 
