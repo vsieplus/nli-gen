@@ -14,8 +14,6 @@ import torch
 import torch.nn.functional as F
 import torchtext
 
-INIT_TOKEN_ID = data.inputs.vocab.stoi[data.INIT_TOKEN]
-PAD_ID = 1
 MAX_GEN_LEN = 25
 TOP_P = 0.8
 TOP_K = 100
@@ -65,7 +63,7 @@ def test_batch(batch, encoder, decoder, rows_list, device, custom = False, use_t
             encoder_hidden, encoder_cell)
 
         # Decoder setup -> forward propogation
-        decoder_input = torch.tensor([[INIT_TOKEN_ID]], device=device)
+        decoder_input = torch.tensor([[data.INIT_TOKEN_ID]], device=device)
 
         decoder_hidden = encoder_hidden
         decoder_cell = encoder_cell
@@ -129,9 +127,11 @@ def main():
 
     print("Loading model")
     encoder = gen_encoder.Encoder(len(data.inputs.vocab), data.HIDDEN_SIZE,
-        embeddings = data.inputs.vocab.vectors, embed_size = data.EMBED_SIZE)
+        embeddings = data.inputs.vocab.vectors, embed_size = data.EMBED_SIZE,
+        pad_idx = data.PAD_ID, unk_idx = data.UNK_ID)
     decoder = gen_decoder.Decoder(len(data.inputs.vocab), data.HIDDEN_SIZE, 
-        embeddings = data.inputs.vocab.vectors, embed_size = data.EMBED_SIZE)
+        embeddings = data.inputs.vocab.vectors, embed_size = data.EMBED_SIZE,
+        pad_idx = data.PAD_ID, unk_idx = data.UNK_ID)
 
     MODEL_PATH = os.path.join(ABS_PATH, MODEL_PATH_DICT[args.model], MODEL_FNAMES[args.model])
 

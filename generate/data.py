@@ -77,3 +77,7 @@ TEST_ITER_DICT = {
     "entailment": test_iter_entail,
     "contradiction": test_iter_contradict,    
 }
+
+INIT_TOKEN_ID = inputs.vocab.stoi[inputs.init_token]
+UNK_TOKEN_ID = inputs.vocab.stoi[inputs.unk_token]
+PAD_TOKEN_ID = inputs.vocab.stoi[inputs.pad_token]

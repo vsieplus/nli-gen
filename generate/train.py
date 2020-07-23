@@ -17,8 +17,6 @@ from torch import optim
 import pandas as pd
 
 LEARNING_RATE = 0.025
-PAD_ID = 1
-INIT_TOKEN_ID = data.inputs.vocab.stoi[data.INIT_TOKEN]
 
 ABS_PATH = pathlib.Path(__file__).parent.absolute() 
 MODELS_PATH = os.path.join(str(ABS_PATH), 'models/')
@@ -197,9 +195,11 @@ def main():
 
     # Create encoder/decoder
     encoder = gen_encoder.Encoder(len(data.inputs.vocab), data.HIDDEN_SIZE,
-        embeddings = data.inputs.vocab.vectors, embed_size = data.EMBED_SIZE)
+        embeddings = data.inputs.vocab.vectors, embed_size = data.EMBED_SIZE, 
+        pad_idx = data.PAD_ID, unk_idx = data.UNK_ID)
     decoder = gen_decoder.Decoder(len(data.inputs.vocab), data.HIDDEN_SIZE, 
-        embeddings = data.inputs.vocab.vectors, embed_size = data.EMBED_SIZE)
+        embeddings = data.inputs.vocab.vectors, embed_size = data.EMBED_SIZE,
+        pad_idx = data.PAD_ID, unk_idx = data.UNK_ID)
 
     print("Starting Training.")
     encoder.train()
