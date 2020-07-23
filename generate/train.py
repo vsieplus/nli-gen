@@ -49,6 +49,9 @@ criterion = nn.NLLLoss()
 #   encoder/decoder (optimizer) - the encoder/decoder (optimizer), respectively
 def train_batch(batch, encoder, decoder, encoder_optimizer, decoder_optimizer, device):
 
+    encoder.train()
+    decoder.train()
+
     premise = batch.premise
     hypothesis = batch.hypothesis
 
@@ -83,15 +86,38 @@ def train_batch(batch, encoder, decoder, encoder_optimizer, decoder_optimizer, d
     # Backpropogation + Gradient descent
     loss.backward()
 
-    encoder_optimizer.step()
     decoder_optimizer.step()
+    encoder_optimizer.step()
 
-    # Return the total loss for the batch
-    return loss.item()
+    # Return the avg loss for the batch
+    return loss.item() / batch_size
 
+def evaluate(dev_iter, encoder, decoder, device):
+    encoder.eval()
+    decoder.eval()
+
+    total_loss = 0
+
+    with torch.no_grad():
+        for batch in dev_iter:
+            loss = 0
+
+            encoder_out, (encoder_hidden, encoder_cell) = encoder(batch.premise,
+                encoder.initHidden(batch_size, device), encoder.initCell(batch_size, device))
+
+            for i in range(batch.hypothesis.size(1) - 1):
+                decoder_input = hypothesis[:, i:i+1]
+                decoder_out, decoder_hidden, decoder_cell = decoder(decoder_input,
+                    decoder_hidden, decoder_cell, device)
+                
+                loss += criterion(decoder_out, hypothesis[:,i+1])
+
+            total_loss += loss.item()
+
+    return total_loss / len(dev_iter)
 
 # Train for the specified number of epochs
-def trainIterations(encoder, decoder, train_iter, n_epochs, device, print_every = 25):
+def trainIterations(encoder, decoder, train_iter, dev_iter, n_epochs, device, args, print_every = 500):
     start = time.time()
     print_loss_total = 0
 
@@ -102,6 +128,8 @@ def trainIterations(encoder, decoder, train_iter, n_epochs, device, print_every 
 
     encoder_optimizer = optim.SGD(encoder.parameters(), lr = LEARNING_RATE, weight_decay = 0.01)
     decoder_optimizer = optim.SGD(decoder.parameters(), lr = LEARNING_RATE, weight_decay = 0.01)
+
+    min_valid_loss = float('inf')
 
     # Process the training set in batches, for NUM_EPOCHS epochs
     for epoch in range(n_epochs):
@@ -125,8 +153,34 @@ def trainIterations(encoder, decoder, train_iter, n_epochs, device, print_every 
                 print_loss_total = 0
                 print("avg loss:", print_loss_avg)
 
+        # check for early stopping every other epoch
+        if epoch % 2 == 0:
+            valid_loss = evaluate(dev_iter, encoder, decoder, device)
+            print("validation loss: %.3f" % valid_loss)
+
+            if valid_loss < min_valid_loss:
+                min_valid_loss = valid_loss
+                save_model(args, encoder, decoder)
+            else:
+                print("stopping early...")
+                break
+
 
         print("-------------------------------------------------------------\n")
+
+def save_model(args, encoder, decoder):
+    # Save models
+    if not os.path.isdir(MODELS_PATH):
+        print('creating directory %s ' % MODELS_PATH)
+        os.mkdir(MODELS_PATH)
+
+    print("Saving models...")
+    torch.save({
+            'encoder_state_dict': encoder.state_dict(),
+            'decoder_state_dict': decoder.state_dict(),            
+        }, 
+        os.path.join(ABS_PATH, args.output_dir, MODEL_FNAMES[args.model_type])
+    )
 
 # Main
 def main():
@@ -157,22 +211,10 @@ def main():
 
     # Train the models on the filtered dataset
     trainIterations(encoder, decoder, data.TRAIN_ITER_DICT[args.model_type], 
-                    args.num_epochs, device)
+        data.DEV_ITER_DICT[args.model_type], args.num_epochs, device, args)
 
     print("Training Complete.")
-
-    # Save models
-    if not os.path.isdir(MODELS_PATH):
-        print('creating directory %s ' % MODELS_PATH)
-        os.mkdir(MODELS_PATH)
-
-    print("Saving models...")
-    torch.save({
-            'encoder_state_dict': encoder.state_dict(),
-            'decoder_state_dict': decoder.state_dict(),            
-        }, 
-        os.path.join(ABS_PATH, args.output_dir, MODEL_FNAMES[args.model_type])
-    )
+    
 
 if __name__ == "__main__":
     main()
