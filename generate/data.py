@@ -16,7 +16,7 @@ import pickle
 # Hyperparams
 NUM_EPOCHS = 25
 HIDDEN_SIZE = 256
-BATCH_SIZE = 1
+BATCH_SIZE = 64
 EMBED_SIZE = 200
 
 INIT_TOKEN = "<sos>"
@@ -61,7 +61,7 @@ train_iter_entail, dev_iter_entail, test_iter_entail = data.BucketIterator.split
     (train_entail, dev_entail, test_entail), batch_size = BATCH_SIZE, device = device, sort = False)
 #    sort_key=lambda x: len(x.premise), sort_within_batch = False)
 train_iter_contradict, dev_iter_contradict, test_iter_contradict = data.BucketIterator.splits(
-    (train_contradict, dev_contracit, test_contradict), batch_size = BATCH_SIZE, device = device, sort = False)
+    (train_contradict, dev_contradict, test_contradict), batch_size = BATCH_SIZE, device = device, sort = False)
 #    sort_key=lambda x: len(x.premise), sort_within_batch = False)
 
 # Dicts for data iterators

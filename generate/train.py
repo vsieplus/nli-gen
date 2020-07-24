@@ -196,10 +196,10 @@ def main():
     # Create encoder/decoder
     encoder = gen_encoder.Encoder(len(data.inputs.vocab), data.HIDDEN_SIZE,
         embeddings = data.inputs.vocab.vectors, embed_size = data.EMBED_SIZE, 
-        pad_idx = data.PAD_ID, unk_idx = data.UNK_ID)
+        pad_idx = data.PAD_TOKEN_ID, unk_idx = data.UNK_TOKEN_ID)
     decoder = gen_decoder.Decoder(len(data.inputs.vocab), data.HIDDEN_SIZE, 
         embeddings = data.inputs.vocab.vectors, embed_size = data.EMBED_SIZE,
-        pad_idx = data.PAD_ID, unk_idx = data.UNK_ID)
+        pad_idx = data.PAD_TOKEN_ID, unk_idx = data.UNK_TOKEN_ID)
 
     print("Starting Training.")
     encoder.train()
