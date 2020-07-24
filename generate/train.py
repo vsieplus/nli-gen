@@ -156,7 +156,7 @@ def trainIterations(encoder, decoder, train_iter, dev_iter, n_epochs, device, ar
             print_loss_total += loss        
             
             if((batch_num + 1) % print_every == 0):
-                print("batch num:", batch_num)
+                print("batch num:", batch_num + 1)
                 print_loss_avg = print_loss_total / print_every
                 print_loss_total = 0
                 print("avg loss:", print_loss_avg)
