@@ -49,7 +49,7 @@ class Decoder(nn.Module):
         # Feed to LSTM along with previous hidden/cell state
         output_packed, (hidden, cell) = self.lstm(input_packed, (prev_h, prev_c))
 
-        output = pad_packed_sequence(output_packed)
+        output, _ = pad_packed_sequence(output_packed, batch_first = True)
 
         output = self.linear_out(output)
         output = self.log_softmax(output)

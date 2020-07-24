@@ -36,7 +36,7 @@ def get_sent_lengths(batch):
     batch_lengths = []
     for pad_tokens in pad_token_indices:
         if pad_tokens.size(0) == 0:
-            batch_lengths.append(premises.size(1))     # no pad/max length
+            batch_lengths.append(batch.size(1))        # no pad/max length
         else:
             batch_lengths.append(pad_tokens[0].item()) # first pad idx
 
