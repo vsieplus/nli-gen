@@ -2,7 +2,7 @@
 
 import torch
 import torch.nn as nn
-import torch.nn.utils.rnn as rnn_utils
+from torch.nn.utils.rnn import pack_padded_sequence, pad_packed_sequence
 
 # Define class for the encoder, using the LSTM recurrent unit
 class Encoder(nn.Module):
@@ -34,18 +34,17 @@ class Encoder(nn.Module):
     #           containing corresponding indices of words of the sentences
     #   h - hidden state, shape: (1, batch, hidden_size)
     #   c - cell state, shape: (same as h0)
-    def forward(self, input_batch, h0, c0):
+    def forward(self, input_batch, input_lengths, h0, c0):
         # Perform embedding element wise
         input_batch = self.embedding(input_batch)
 
+        input_packed = pack_padded_sequence(input_batch, input_lengths, batch_first = True,
+            enforce_sorted = False)
+
         # Pass through lstm
-        output, (hidden, cell) = self.lstm(input_batch, (h0, c0))
+        output_packed, (hidden, cell) = self.lstm(input_packed, (h0, c0))
 
-        hidden = hidden[0]
-        cell = cell[0]
-
-        hidden = hidden.unsqueeze(0)
-        cell = cell.unsqueeze(0)
+        output, _ = pad_packed_sequence(output_packed, batch_first = True)
 
         return output, (hidden, cell)
 

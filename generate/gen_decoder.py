@@ -2,7 +2,7 @@
 
 import torch
 import torch.nn as nn
-import torch.nn.utils.rnn as rnn_utils
+from torch.nn.utils.rnn import pack_padded_sequence, pad_packed_sequence
 
 # Define a class for the decoder, using the LSTM recurrent unit and word-word attention
 class Decoder(nn.Module):
@@ -39,14 +39,18 @@ class Decoder(nn.Module):
     #                 containing corresponding indices of words of the sentences
     #   prev_h - previous hidden state, shape: (batch, hidden_size)
     #   prev_c - previous cell state, shape: (same as hidden)
-    def forward(self, input_batch, prev_h, prev_c, device):  
+    def forward(self, input_batch, input_lengths, prev_h, prev_c, device):
         # Get embedding of the input
         input_embeddings = self.embedding(input_batch)
 
+        input_packed = pack_padded_sequence(input_embeddings, input_lengths,
+            batch_first = True, enforce_sorted = False)
+
         # Feed to LSTM along with previous hidden/cell state
-        output, (hidden, cell) = self.lstm(input_embeddings, (prev_h, prev_c))
+        output_packed, (hidden, cell) = self.lstm(input_packed, (prev_h, prev_c))
+
+        output = pad_packed_sequence(output_packed)
 
         output = self.linear_out(output)
         output = self.log_softmax(output)
-        output = output.squeeze(0)
         return output, hidden, cell

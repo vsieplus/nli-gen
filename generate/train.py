@@ -30,6 +30,19 @@ MODEL_FNAMES = {
 # Negative likelihood loss, with SGD
 criterion = nn.NLLLoss()
 
+def get_sent_lengths(batch):
+    pad_token_indices = [(ex == data.PAD_TOKEN_ID).nonzero() for ex in batch]
+
+    batch_lengths = []
+    for pad_tokens in pad_token_indices:
+        if pad_tokens.size(0) == 0:
+            batch_lengths.append(premises.size(1))     # no pad/max length
+        else:
+            batch_lengths.append(pad_tokens[0].item()) # first pad idx
+
+    return batch_lengths
+
+
 # Function to train the seq2seq model, given a minibatch in the seq2seq model:
 #   (1) Run input batch through encoder, producing final hidden + cell state
 #   (2) Decoder takes in first word as initial input, and the final hidden and cell 
@@ -50,36 +63,33 @@ def train_batch(batch, encoder, decoder, encoder_optimizer, decoder_optimizer, d
     encoder.train()
     decoder.train()
 
-    premise = batch.premise
-    hypothesis = batch.hypothesis
-
-    batch_size = batch.batch_size
-
     encoder_optimizer.zero_grad()
     decoder_optimizer.zero_grad()
+
+    premises = batch.premise
+    hypotheses = batch.hypothesis
+
+    batch_size = batch.batch_size
             
     loss = 0
 
-    encoder_hidden = encoder.initHidden(batch_size, device)
-    encoder_cell = encoder.initCell(batch_size, device)
+    premise_lengths = get_sent_lengths(premises)
+    hypothesis_lengths = get_sent_lengths(hypotheses)
 
     # Feed input through encoder, store outputs
-    encoder_out, (encoder_hidden, encoder_cell) = encoder(premise,
-        encoder_hidden, encoder_cell)
+    encoder_out, (encoder_hidden, encoder_cell) = encoder(premises, premise_lengths,
+        encoder.initHidden(batch_size, device), encoder.initCell(batch_size, device))
 
     # Decoder setup -> forward propogation
-    decoder_hidden = encoder_hidden
-    decoder_cell = encoder_cell
+    decoder_out, decoder_hidden, decoder_cell = decoder(hypotheses, hypothesis_lengths,
+        encoder_hidden, encoder_cell, device)
 
-    for i in range(hypothesis.size(1) - 1):
-        # Feed actual target token as input to next timestep
-        decoder_input = hypothesis[:, i:i+1]
-    
-        decoder_output, decoder_hidden, decoder_cell = decoder(decoder_input,
-            decoder_hidden, decoder_cell, device)
+    # compute loss for each timestep (except the last)
+    for i in range(hypotheses.size(1) - 1):
+        target = hypotheses[:,i+1] 
 
         # Compute loss
-        loss += criterion(decoder_output, hypothesis[:,i+1])
+        loss += criterion(decoder_out[:,i], target)
             
     # Backpropogation + Gradient descent
     loss.backward()
