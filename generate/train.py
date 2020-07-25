@@ -104,33 +104,40 @@ def evaluate(dev_iter, encoder, decoder, device):
     encoder.eval()
     decoder.eval()
 
+    batch_size = len(dev_iter)
+
     total_loss = 0
 
     with torch.no_grad():
+        dev_iter.init_epoch()
+
         for batch in dev_iter:
             loss = 0
 
-            encoder_out, (encoder_hidden, encoder_cell) = encoder(batch.premise,
+            premises = batch.premise
+            hypotheses = batch.hypothesis
+
+            premise_lengths = get_sent_lengths(premises)
+            hypothesis_lengths = get_sent_lengths(hypotheses)
+
+            encoder_out, (encoder_hidden, encoder_cell) = encoder(premises, premise_lengths,
                 encoder.initHidden(batch_size, device), encoder.initCell(batch_size, device))
 
+            decoder_out, decoder_hidden, decoder_cell = decoder(batch.hypothesis,
+                hypothesis_lengths, encoder_hidden, encoder_cell, device)
+
             for i in range(batch.hypothesis.size(1) - 1):
-                decoder_input = hypothesis[:, i:i+1]
-                decoder_out, decoder_hidden, decoder_cell = decoder(decoder_input,
-                    decoder_hidden, decoder_cell, device)
-                
-                loss += criterion(decoder_out, hypothesis[:,i+1])
+                loss += criterion(decoder_out[:,i], hypothesis[:,i+1])
 
             total_loss += loss.item()
 
     return total_loss / len(dev_iter)
 
 # Train for the specified number of epochs
-def trainIterations(encoder, decoder, train_iter, dev_iter, n_epochs, device, args, print_every = 2000):
+def trainIterations(encoder, decoder, train_iter, dev_iter, n_epochs, device, args, print_every = 200):
     start = time.time()
     print_loss_total = 0
 
-    train_iter.init_epoch()
-    
     encoder.train()
     decoder.train()
 
@@ -197,7 +204,7 @@ def main():
     parser.add_argument("--output_dir", type=str, help="output directory")
     parser.add_argument("--model_type", type=str, help="entailment or contradiction",
                         choices = GENERATION_TYPES)
-    parser.add_argument("--num_epochs", type=int, default=1)
+    parser.add_argument("--num_epochs", type=int, default=5)
 
     args = parser.parse_args()
 
@@ -211,6 +218,7 @@ def main():
         embeddings = data.inputs.vocab.vectors, embed_size = data.EMBED_SIZE,
         pad_idx = data.PAD_TOKEN_ID, unk_idx = data.UNK_TOKEN_ID)
 
+
     print("Starting Training.")
     encoder.train()
     decoder.train()
@@ -218,6 +226,9 @@ def main():
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     encoder.to(device) 
     decoder.to(device)
+
+    evaluate(data.DEV_ITER_DICT[args.model_type], encoder, decoder, device)
+    sys.exit()
 
     # Train the models on the filtered dataset
     trainIterations(encoder, decoder, data.TRAIN_ITER_DICT[args.model_type], 

@@ -42,9 +42,9 @@ class Encoder(nn.Module):
             enforce_sorted = False)
 
         # Pass through lstm
-        output_packed, (hidden, cell) = self.lstm(input_packed, (h0, c0))
+        output, (hidden, cell) = self.lstm(input_packed, (h0, c0))
 
-        output, _ = pad_packed_sequence(output_packed, batch_first = True)
+        output, _ = pad_packed_sequence(output, batch_first = True)
 
         return output, (hidden, cell)
 
