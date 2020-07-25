@@ -45,7 +45,7 @@ dev_contradict = data.Dataset(dev.examples, dev.fields,
 test_contradict = data.Dataset(test.examples, test.fields, 
     filter_pred = lambda x: x.label == "contradiction")
 
-inputs.build_vocab(train_entail, test_entail, train_contradict, test_contradict)
+inputs.build_vocab(train_entail, dev_entail, test_entail, train_contradict, dev_contradict, test_contradict)
 labels.build_vocab(train_entail)
 
 print("Loading embeddings...")
