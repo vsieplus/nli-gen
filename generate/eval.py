@@ -3,6 +3,7 @@
 import data
 import gen_encoder
 import gen_decoder
+from train import get_sent_lengths
 
 import argparse
 import pathlib
@@ -14,6 +15,7 @@ import torch
 import torch.nn.functional as F
 import torchtext
 
+CUSTOM_BATCH_SIZE = 5
 MAX_GEN_LEN = 25
 TOP_P = 0.8
 TOP_K = 100
@@ -51,40 +53,49 @@ def test_batch(batch, encoder, decoder, rows_list, device, custom = False, use_t
         for w in range(premises[b, :].size(0)):
             premise = premises[b]
             word_idx = premise[w]
-            result_dicts[b]["premise"] += data.inputs.vocab.itos[word_idx] + " "
+            if word_idx != data.PAD_TOKEN_ID:
+                result_dicts[b]["premise"] += data.inputs.vocab.itos[word_idx] + " "
 
     with torch.no_grad():
         # Feed input through encoder, store packed output + context
-        encoder_hidden = encoder.initHidden(curr_batch_size, device)
-        encoder_cell = encoder.initCell(curr_batch_size, device)
-
-        # Feed input through encoder
         encoder_out, (encoder_hidden, encoder_cell) = encoder(premises,
-            encoder_hidden, encoder_cell)
+            get_sent_lengths(premises, device), encoder.initHidden(curr_batch_size, device), 
+            encoder.initCell(curr_batch_size, device))
 
         # Decoder setup -> forward propogation
-        decoder_input = torch.tensor([[data.INIT_TOKEN_ID]], device=device)
-
         decoder_hidden = encoder_hidden
         decoder_cell = encoder_cell
+
+        decoder_input = torch.tensor([data.INIT_TOKEN_ID], device=device)
+        decoder_input = decoder_input.repeat(curr_batch_size).view(curr_batch_size, 1)
+
+        done_generating = [False for _ in range(curr_batch_size)]
+
+        decoder_in_lengths = torch.ones(curr_batch_size, device=device)
 
         # Feed actual target token as input to next timestep
         for i in range(MAX_GEN_LEN):
             decoder_output, decoder_hidden, decoder_cell = decoder(decoder_input,
-                decoder_hidden, decoder_cell, device)
+                decoder_in_lengths, decoder_hidden, decoder_cell, device)
 
-            # Input to next timestep are sampled from top-k of dist.
-            decoder.input=torch.zeros(curr_batch_size, device=device)
+            # squeeze seq. len (1)
+            decoder_output = decoder_output.squeeze(1)
+
+            # Input to next timestep are sampled from top-k/p of dist.
+            decoder_input = torch.zeros_like(decoder_input)
 
             # Detokenize (to text) and write results to file
             for b in range(curr_batch_size):
+                if done_generating[b]:
+                    continue
+
                 if use_topk:
                     topk_idxs = torch.topk(decoder_output[b], TOP_K)[1]
                     decoder_input[b] = torch.multinomial(F.softmax(decoder_output[b,topk_idxs], dim=-1), 1)
 
                 else:
                     # use top-p sampling
-                    sorted_logits, sorted_indices = torch.sort(decoder_output[0], descending = True)
+                    sorted_logits, sorted_indices = torch.sort(decoder_output[b], descending = True)
                     cum_probs = torch.cumsum(F.softmax(sorted_logits, dim = -1), dim  = -1)
 
                     idxs_to_rm = cum_probs > TOP_P
@@ -99,13 +110,11 @@ def test_batch(batch, encoder, decoder, rows_list, device, custom = False, use_t
 
                     decoder_input[b] = torch.multinomial(F.softmax(decoder_output[b,:], dim=-1), 1)
 
-                word_b = data.inputs.vocab.itos[decoder_input[b]]        
+                word_b = data.inputs.vocab.itos[decoder_input[b]]
                 result_dicts[b]["hypothesis"] += word_b + " "
 
                 if word_b == ".":
-                    rows_list.extend(result_dicts)
-                    return
-
+                    done_generating[b] = True
 
     rows_list.extend(result_dicts)
     
@@ -157,11 +166,30 @@ def main():
     print("Evaluating custom contexts")
     rows_custom = []
 
-    for b in range(len(gen_contexts)):
-        curr_batch = torch.tensor(gen_contexts_tokenized[b], device=device)
-        curr_batch = curr_batch.unsqueeze(0)
-        test_batch(curr_batch, encoder, decoder, rows_custom, device, custom = True,
-            use_topk = False)
+    # calc last batch
+    num_custom_batches = int(len(gen_contexts) / CUSTOM_BATCH_SIZE)
+    leftover = len(gen_contexts) % CUSTOM_BATCH_SIZE
+    if leftover != 0:
+        num_custom_batches += 1
+        last_batch_size = leftover
+    else:
+        last_batch_size = CUSTOM_BATCH_SIZE
+
+    for b in range(num_custom_batches):
+        start_idx = b * CUSTOM_BATCH_SIZE
+
+        if b == num_custom_batches - 1:
+            curr_batch = [torch.tensor(context, device=device) for context in
+                gen_contexts_tokenized[start_idx:start_idx + last_batch_size]]
+        else:
+            curr_batch = [torch.tensor(context, device=device) for context in
+                gen_contexts_tokenized[start_idx:start_idx + CUSTOM_BATCH_SIZE]]
+        
+        curr_batch_padded = torch.nn.utils.rnn.pad_sequence(curr_batch, batch_first = True,
+            padding_value = data.PAD_TOKEN_ID)
+        
+        test_batch(curr_batch_padded, encoder, decoder, rows_custom, device,
+            custom = True, use_topk = False)
 
     df_custom = pd.DataFrame(rows_custom, columns = ("premise", "hypothesis"))
     df_custom.to_csv(os.path.join(RESULTS_PATH,args.model,"custom.csv"), sep = "\t",index = False)
