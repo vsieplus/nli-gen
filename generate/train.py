@@ -30,7 +30,7 @@ MODEL_FNAMES = {
 # Negative likelihood loss, with SGD
 criterion = nn.NLLLoss()
 
-def get_sent_lengths(batch):
+def get_sent_lengths(batch, device):
     pad_token_indices = [(ex == data.PAD_TOKEN_ID).nonzero() for ex in batch]
 
     batch_lengths = []
@@ -40,7 +40,7 @@ def get_sent_lengths(batch):
         else:
             batch_lengths.append(pad_tokens[0].item()) # first pad idx
 
-    return batch_lengths
+    return torch.tensor(batch_lengths, device = device)
 
 
 # Function to train the seq2seq model, given a minibatch in the seq2seq model:
@@ -73,8 +73,8 @@ def train_batch(batch, encoder, decoder, encoder_optimizer, decoder_optimizer, d
             
     loss = 0
 
-    premise_lengths = get_sent_lengths(premises)
-    hypothesis_lengths = get_sent_lengths(hypotheses)
+    premise_lengths = get_sent_lengths(premises, device)
+    hypothesis_lengths = get_sent_lengths(hypotheses, device)
 
     # Feed input through encoder, store outputs
     encoder_out, (encoder_hidden, encoder_cell) = encoder(premises, premise_lengths,
@@ -104,8 +104,6 @@ def evaluate(dev_iter, encoder, decoder, device):
     encoder.eval()
     decoder.eval()
 
-    batch_size = len(dev_iter)
-
     total_loss = 0
 
     with torch.no_grad():
@@ -113,12 +111,13 @@ def evaluate(dev_iter, encoder, decoder, device):
 
         for batch in dev_iter:
             loss = 0
+            batch_size = batch.batch_size
 
-            premises = batch.premise
-            hypotheses = batch.hypothesis
+            premises = batch.premise.to(device)
+            hypotheses = batch.hypothesis.to(device)
 
-            premise_lengths = get_sent_lengths(premises)
-            hypothesis_lengths = get_sent_lengths(hypotheses)
+            premise_lengths = get_sent_lengths(premises, device)
+            hypothesis_lengths = get_sent_lengths(hypotheses, device)
 
             encoder_out, (encoder_hidden, encoder_cell) = encoder(premises, premise_lengths,
                 encoder.initHidden(batch_size, device), encoder.initCell(batch_size, device))
@@ -127,7 +126,7 @@ def evaluate(dev_iter, encoder, decoder, device):
                 hypothesis_lengths, encoder_hidden, encoder_cell, device)
 
             for i in range(batch.hypothesis.size(1) - 1):
-                loss += criterion(decoder_out[:,i], hypothesis[:,i+1])
+                loss += criterion(decoder_out[:,i], hypotheses[:,i+1])
 
             total_loss += loss.item()
 
@@ -226,9 +225,6 @@ def main():
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     encoder.to(device) 
     decoder.to(device)
-
-    evaluate(data.DEV_ITER_DICT[args.model_type], encoder, decoder, device)
-    sys.exit()
 
     # Train the models on the filtered dataset
     trainIterations(encoder, decoder, data.TRAIN_ITER_DICT[args.model_type], 
