@@ -44,7 +44,7 @@ test_entail = data.Dataset(test.examples, test.fields,
 train_contradict = data.Dataset(train.examples, train.fields, 
     filter_pred = lambda x: x.label == "contradiction")
 dev_contradict = data.Dataset(dev.examples, dev.fields,
-    filter_pred = lambda x: x.label == "contradict")
+    filter_pred = lambda x: x.label == "contradiction")
 test_contradict = data.Dataset(test.examples, test.fields, 
     filter_pred = lambda x: x.label == "contradiction")
 

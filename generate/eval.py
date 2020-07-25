@@ -206,7 +206,7 @@ def main():
     elif args.model == "contradiction":
         rows_list_contradict = []
         for batch_num, batch in enumerate(data.test_iter_contradict):
-            test_batch(batch, encoder, decoder, rows_list_contradict, device)
+            test_batch(batch, encoder, decoder, rows_list_contradict, device, custom = False, use_topk = False)
         df_contradict = pd.DataFrame(rows_list_contradict, columns = ("premise", "hypothesis"))
         df_contradict.to_csv(os.path.join(RESULTS_PATH,args.model,"test.csv"), sep = "\t", index = False)
 
